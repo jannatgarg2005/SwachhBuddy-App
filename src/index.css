@@ -1,0 +1,229 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Swachh Bharat Digital Design System - Eco-friendly waste management platform */
+
+@layer base {
+  :root {
+    /* Base Colors - Eco-friendly palette */
+    --background: 45 15% 97%;
+    --foreground: 120 12% 15%;
+
+    /* Card System */
+    --card: 0 0% 100%;
+    --card-foreground: 120 12% 15%;
+
+    /* Interactive Elements */
+    --popover: 0 0% 100%;
+    --popover-foreground: 120 12% 15%;
+
+    /* Primary - Forest Green */
+    --primary: 140 65% 35%;
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 140 55% 45%;
+
+    /* Secondary - Earth Brown */
+    --secondary: 30 25% 85%;
+    --secondary-foreground: 30 35% 25%;
+
+    /* Muted - Recycled Paper */
+    --muted: 45 20% 92%;
+    --muted-foreground: 120 8% 45%;
+
+    /* Accent - Sky Blue */
+    --accent: 200 85% 65%;
+    --accent-foreground: 200 95% 15%;
+
+    /* Success - Fresh Green */
+    --success: 120 60% 50%;
+    --success-foreground: 0 0% 98%;
+
+    /* Warning - Amber */
+    --warning: 45 95% 55%;
+    --warning-foreground: 45 85% 15%;
+
+    /* Destructive - Eco Red */
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Borders & Inputs */
+    --border: 120 15% 85%;
+    --input: 120 15% 90%;
+    --ring: 140 65% 35%;
+
+    /* Radius */
+    --radius: 0.75rem;
+
+    /* Gradients */
+    --gradient-eco: linear-gradient(135deg, hsl(140 65% 35%), hsl(140 55% 45%));
+    --gradient-earth: linear-gradient(135deg, hsl(30 35% 25%), hsl(30 45% 35%));
+    --gradient-sky: linear-gradient(135deg, hsl(200 85% 65%), hsl(210 80% 70%));
+    --gradient-nature: linear-gradient(135deg, hsl(140 65% 35%), hsl(200 85% 65%));
+    --gradient-hero: linear-gradient(135deg, hsl(140 65% 35%) 0%, hsl(120 60% 50%) 50%, hsl(200 85% 65%) 100%);
+
+    /* Shadows */
+    --shadow-eco: 0 10px 30px -10px hsl(140 65% 35% / 0.3);
+    --shadow-card: 0 4px 20px hsl(120 15% 15% / 0.1);
+    --shadow-glow: 0 0 40px hsl(140 55% 45% / 0.4);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Dark mode eco-theme */
+    --background: 120 15% 8%;
+    --foreground: 45 20% 92%;
+
+    --card: 120 12% 12%;
+    --card-foreground: 45 20% 92%;
+
+    --popover: 120 12% 12%;
+    --popover-foreground: 45 20% 92%;
+
+    --primary: 140 55% 45%;
+    --primary-foreground: 120 15% 8%;
+    --primary-glow: 140 65% 55%;
+
+    --secondary: 30 20% 20%;
+    --secondary-foreground: 30 25% 85%;
+
+    --muted: 120 8% 18%;
+    --muted-foreground: 120 8% 65%;
+
+    --accent: 200 75% 55%;
+    --accent-foreground: 200 95% 15%;
+
+    --success: 120 50% 45%;
+    --success-foreground: 120 15% 8%;
+
+    --warning: 45 85% 50%;
+    --warning-foreground: 45 85% 15%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 120 12% 25%;
+    --input: 120 12% 20%;
+    --ring: 140 55% 45%;
+
+    /* Dark mode gradients */
+    --gradient-eco: linear-gradient(135deg, hsl(140 55% 35%), hsl(140 65% 45%));
+    --gradient-earth: linear-gradient(135deg, hsl(30 25% 20%), hsl(30 35% 30%));
+    --gradient-sky: linear-gradient(135deg, hsl(200 75% 45%), hsl(210 70% 50%));
+    --gradient-nature: linear-gradient(135deg, hsl(140 55% 35%), hsl(200 75% 45%));
+    --gradient-hero: linear-gradient(135deg, hsl(140 55% 35%) 0%, hsl(120 50% 45%) 50%, hsl(200 75% 45%) 100%);
+
+    /* Dark shadows */
+    --shadow-eco: 0 10px 30px -10px hsl(140 55% 25% / 0.5);
+    --shadow-card: 0 4px 20px hsl(120 15% 5% / 0.4);
+    --shadow-glow: 0 0 40px hsl(140 65% 35% / 0.3);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+
+  /* Custom utility classes */
+  .gradient-eco {
+    background: var(--gradient-eco);
+  }
+
+  .gradient-earth {
+    background: var(--gradient-earth);
+  }
+
+  .gradient-sky {
+    background: var(--gradient-sky);
+  }
+
+  .gradient-nature {
+    background: var(--gradient-nature);
+  }
+
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .shadow-eco {
+    box-shadow: var(--shadow-eco);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+
+  .transition-bounce {
+    transition: var(--transition-bounce);
+  }
+
+  /* Animated progress bars */
+  .progress-bar {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .progress-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+
+  /* Floating animation for cards */
+  .float-card {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  /* Pulse glow effect */
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes pulse-glow {
+    from { box-shadow: var(--shadow-eco); }
+    to { box-shadow: var(--shadow-glow); }
+  }
+}

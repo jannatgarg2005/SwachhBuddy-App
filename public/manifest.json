@@ -1,0 +1,22 @@
+{
+  "name": "Swachh Buddy",
+  "short_name": "SwachhBuddy",
+  "description": "India's AI-powered waste management platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1B4332",
+  "theme_color": "#1B4332",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/chatbot.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/chatbot.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

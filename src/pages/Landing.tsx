@@ -184,8 +184,8 @@ const Landing = ({ onUserTypeSelect }: LandingProps) => {
         <p className="text-green-200 text-xs md:text-sm px-4">
           Built with ❤️ by Team{" "}
           <span className="font-bold text-white">NeuroX</span> for{" "}
-          <span className="font-bold text-white">HACKXTRACT 2026</span>{" "}
-          | Problem ID: Sustainable Development
+          <span className="font-bold text-white">Sustainable Development</span>{" "}
+          
         </p>
       </section>
     </div>

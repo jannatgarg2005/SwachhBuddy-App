@@ -19,7 +19,7 @@ const Footer = () => {
               Your Swachhta Buddy — Join us in creating a cleaner, greener India. Empower communities, track waste, and earn rewards for sustainability.
             </p>
             <p className="text-green-400 text-xs mt-2 font-semibold">
-              Team NeuroX | 
+              Team NeuroX | Built for Environment | 2026
             </p>
           </div>
 

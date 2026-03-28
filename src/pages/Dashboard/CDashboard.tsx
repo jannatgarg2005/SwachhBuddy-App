@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   QrCode, Truck, Camera, Calendar,
   GraduationCap, Gamepad2, Users, BarChart3, Leaf, Bot,
-  Coins, Flame, Medal, TrendingUp,
+  Coins, Flame, Medal, TrendingUp, Wind,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import RewardsSystem from "@/components/RewardsSystem";
@@ -26,6 +26,7 @@ import SchedulePickup from "@/components/SchedulePickup";
 import AIWasteClassifier from "@/components/AIWasteClassifier";
 import { LiveDashboardStats } from "@/components/LiveDashboardStats";
 import DashboardHeader from "@/components/DashboardHeader";
+import CarbonTracker from "@/components/CarbonTracker";
 
 const CDashboard = () => {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ const CDashboard = () => {
   const [showSchedulePickup, setShowSchedulePickup] = useState(false);
   const [showAIClassifier, setShowAIClassifier]     = useState(false);
 
-  const handlePointsEarnedWrapper = (points: number, meta: any) => { earn(points, meta); };
+  const handlePointsEarnedWrapper  = (points: number, meta: any) => { earn(points, meta); };
   const handlePointsRedeemedWrapper = (points: number): void => { redeem(points); };
 
   const leaderboardData = [
@@ -63,44 +64,24 @@ const CDashboard = () => {
         role="citizen"
         levelBadge="Level 1"
         stats={[
-          {
-            value: coins,
-            label: "Points",
-            icon: <TrendingUp className="h-3.5 w-3.5 text-white" />,
-            highlight: true,
-          },
-          {
-            value: coins,
-            label: "Coins",
-            icon: <Coins className="h-3.5 w-3.5 text-white" />,
-          },
-          {
-            value: `🔥 ${streak}`,
-            label: "Streak",
-            icon: <Flame className="h-3.5 w-3.5 text-white" />,
-          },
-          {
-            value: "#4",
-            label: "District Rank",
-            icon: <Medal className="h-3.5 w-3.5 text-white" />,
-          },
-          {
-            value: `${Math.round((weeklyProgress / weeklyGoal) * 100)}%`,
-            label: "Weekly Goal",
-            icon: <TrendingUp className="h-3.5 w-3.5 text-white" />,
-          },
+          { value: coins,   label: "Points",       icon: <TrendingUp className="h-3.5 w-3.5 text-white" />, highlight: true },
+          { value: coins,   label: "Coins",        icon: <Coins className="h-3.5 w-3.5 text-white" /> },
+          { value: `🔥 ${streak}`, label: "Streak", icon: <Flame className="h-3.5 w-3.5 text-white" /> },
+          { value: "#4",    label: "District Rank", icon: <Medal className="h-3.5 w-3.5 text-white" /> },
+          { value: `${Math.round((weeklyProgress / weeklyGoal) * 100)}%`, label: "Weekly Goal", icon: <TrendingUp className="h-3.5 w-3.5 text-white" /> },
         ]}
       />
 
       {/* ── Tabs ── */}
       <div className="container mx-auto p-3 md:p-5">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 gap-1 md:gap-3 rounded-2xl bg-muted/60 p-1.5 md:p-2 shadow-sm">
+          <TabsList className="grid w-full grid-cols-5 gap-1 md:gap-2 rounded-2xl bg-muted/60 p-1.5 md:p-2 shadow-sm">
             {[
-              { value: "overview",    icon: <FiHome className="w-4 h-4 flex-shrink-0" />,    label: "Overview" },
-              { value: "activities",  icon: <FiActivity className="w-4 h-4 flex-shrink-0" />, label: "Activities" },
-              { value: "learning",    icon: <FiBook className="w-4 h-4 flex-shrink-0" />,     label: "Learning" },
-              { value: "leaderboard", icon: <FiAward className="w-4 h-4 flex-shrink-0" />,    label: "Leaderboard" },
+              { value: "overview",    icon: <FiHome className="w-4 h-4 flex-shrink-0" />,                             label: "Overview" },
+              { value: "carbon",      icon: <Wind className="w-4 h-4 flex-shrink-0 text-green-600" />,                label: "Carbon" },
+              { value: "activities",  icon: <FiActivity className="w-4 h-4 flex-shrink-0" />,                         label: "Activities" },
+              { value: "learning",    icon: <FiBook className="w-4 h-4 flex-shrink-0" />,                             label: "Learning" },
+              { value: "leaderboard", icon: <FiAward className="w-4 h-4 flex-shrink-0" />,                            label: "Leaderboard" },
             ].map(tab => (
               <TabsTrigger key={tab.value} value={tab.value}
                 className="flex items-center justify-center gap-1 md:gap-2 rounded-xl py-2 px-1 md:px-3 text-xs md:text-sm font-medium transition-all
@@ -171,6 +152,22 @@ const CDashboard = () => {
             <LiveDashboardStats />
           </TabsContent>
 
+          {/* ── CARBON FOOTPRINT ── */}
+          <TabsContent value="carbon" className="space-y-4">
+            <div className="flex items-center justify-between mb-1">
+              <div>
+                <h2 className="text-xl md:text-2xl font-bold">Carbon Footprint</h2>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Every correct disposal prevents real CO₂ emissions. Track your climate impact here.
+                </p>
+              </div>
+              <Button variant="outline" size="sm" className="gap-2 flex-shrink-0" onClick={() => setShowAIClassifier(true)}>
+                <Bot className="h-4 w-4" /> Classify Waste
+              </Button>
+            </div>
+            <CarbonTracker />
+          </TabsContent>
+
           {/* ── ACTIVITIES ── */}
           <TabsContent value="activities">
             <Activities />
@@ -188,8 +185,7 @@ const CDashboard = () => {
             <Card className="border-primary/20 bg-primary/5">
               <CardHeader className="pb-2 md:pb-4">
                 <CardTitle className="flex items-center gap-2 text-primary text-base md:text-lg">
-                  <Leaf className="h-5 w-5" />
-                  Your Duties as a Citizen
+                  <Leaf className="h-5 w-5" /> Your Duties as a Citizen
                 </CardTitle>
                 <CardDescription>Key responsibilities to help keep India clean</CardDescription>
               </CardHeader>
@@ -217,9 +213,7 @@ const CDashboard = () => {
             <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader>
-                  <CardTitle className="text-base md:text-lg flex items-center">
-                    <GraduationCap className="mr-2 h-5 w-5" /> Core Training
-                  </CardTitle>
+                  <CardTitle className="text-base md:text-lg flex items-center"><GraduationCap className="mr-2 h-5 w-5" /> Core Training</CardTitle>
                   <CardDescription>Complete the 3-level mandatory training program</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -232,9 +226,7 @@ const CDashboard = () => {
               </Card>
               <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader>
-                  <CardTitle className="text-base md:text-lg flex items-center">
-                    <Gamepad2 className="mr-2 h-5 w-5" /> Learning Games
-                  </CardTitle>
+                  <CardTitle className="text-base md:text-lg flex items-center"><Gamepad2 className="mr-2 h-5 w-5" /> Learning Games</CardTitle>
                   <CardDescription>Play interactive games to reinforce knowledge</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -247,9 +239,7 @@ const CDashboard = () => {
               </Card>
               <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader>
-                  <CardTitle className="text-base md:text-lg flex items-center">
-                    <Users className="mr-2 h-5 w-5" /> Specialized Courses
-                  </CardTitle>
+                  <CardTitle className="text-base md:text-lg flex items-center"><Users className="mr-2 h-5 w-5" /> Specialized Courses</CardTitle>
                   <CardDescription>Role-specific training for your user type</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -260,9 +250,7 @@ const CDashboard = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center text-base md:text-lg">
-                  <BarChart3 className="mr-2 h-5 w-5" /> Learning Progress
-                </CardTitle>
+                <CardTitle className="flex items-center text-base md:text-lg"><BarChart3 className="mr-2 h-5 w-5" /> Learning Progress</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">

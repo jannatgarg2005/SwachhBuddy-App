@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import {
   Camera, Upload, Loader2, Recycle,
-  AlertTriangle, Leaf, Zap, X, CheckCircle, RefreshCw,
+  AlertTriangle, Leaf, Zap, X, CheckCircle, RefreshCw, Wind,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { usePoints } from "@/contexts/PointsContext";
+import { calculateCarbonImpact, saveCarbonEntry } from "@/lib/carbonData";
 
 interface ClassificationResult {
   category: "wet" | "dry" | "hazardous" | "e-waste" | "unknown";
@@ -115,7 +116,6 @@ export const AIWasteClassifier = ({ isOpen, onClose }: AIWasteClassifierProps) =
     if (!image) return;
     setIsAnalyzing(true);
 
-    // Localhost: /api/classify doesn't run locally, show demo
     if (isLocalhost()) {
       await new Promise((r) => setTimeout(r, 1500));
       setResult(DEMO_RESULT);
@@ -130,10 +130,7 @@ export const AIWasteClassifier = ({ isOpen, onClose }: AIWasteClassifierProps) =
 
       const response = await fetch("/api/classify", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify({ imageBase64: base64Data, mimeType }),
       });
 
@@ -178,11 +175,25 @@ export const AIWasteClassifier = ({ isOpen, onClose }: AIWasteClassifierProps) =
 
   const handleAwardPoints = () => {
     if (!result || pointsAwarded || isDemoMode) return;
+
+    // Award points
     earn(result.points, { source: "ai-classifier" });
+
+    // Save carbon entry to localStorage
+    const carbon = calculateCarbonImpact(result.category);
+    saveCarbonEntry({
+      date: new Date().toISOString(),
+      category: result.category,
+      itemName: result.itemName,
+      co2Saved: carbon.co2Saved,
+      treesEquivalent: carbon.treesEquivalent,
+      kmDrivingEquivalent: carbon.kmDrivingEquivalent,
+    });
+
     setPointsAwarded(true);
     toast({
-      title: `+${result.points} points earned!`,
-      description: `Great job disposing ${result.itemName} correctly!`,
+      title: `+${result.points} points & ${carbon.co2Saved} kg CO₂ prevented! 🌱`,
+      description: `${result.itemName} correctly disposed. Check your Carbon Tracker for impact.`,
     });
   };
 
@@ -196,6 +207,9 @@ export const AIWasteClassifier = ({ isOpen, onClose }: AIWasteClassifierProps) =
   const cfg = result
     ? categoryConfig[result.category] || categoryConfig.unknown
     : null;
+
+  // Carbon impact for the current result
+  const carbonImpact = result ? calculateCarbonImpact(result.category) : null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-auto">
@@ -231,34 +245,22 @@ export const AIWasteClassifier = ({ isOpen, onClose }: AIWasteClassifierProps) =
                 <Recycle className="h-12 w-12 text-primary/40 mx-auto mb-3" />
                 <p className="text-lg font-semibold mb-1">Upload a Waste Photo</p>
                 <p className="text-sm text-muted-foreground mb-5">
-                  AI will identify the item and tell you exactly which bin to use
+                  AI will identify the item, tell you which bin to use, and show its CO₂ impact
                 </p>
                 <div className="flex gap-3 justify-center">
-                  <Button
-                    onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
-                    className="gap-2"
-                  >
+                  <Button onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }} className="gap-2">
                     <Camera className="h-4 w-4" /> Camera
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                    className="gap-2"
-                  >
+                  <Button variant="outline" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} className="gap-2">
                     <Upload className="h-4 w-4" /> Gallery
                   </Button>
                 </div>
               </div>
 
-              <input
-                ref={cameraInputRef} type="file" accept="image/*"
-                capture="environment" className="hidden"
-                onChange={(e) => e.target.files?.[0] && handleImageSelect(e.target.files[0])}
-              />
-              <input
-                ref={fileInputRef} type="file" accept="image/*" className="hidden"
-                onChange={(e) => e.target.files?.[0] && handleImageSelect(e.target.files[0])}
-              />
+              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden"
+                onChange={(e) => e.target.files?.[0] && handleImageSelect(e.target.files[0])} />
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+                onChange={(e) => e.target.files?.[0] && handleImageSelect(e.target.files[0])} />
 
               {/* Bin legend */}
               <div className="grid grid-cols-4 gap-2 text-center text-xs pt-1">
@@ -283,36 +285,26 @@ export const AIWasteClassifier = ({ isOpen, onClose }: AIWasteClassifierProps) =
             <div className="space-y-4">
               <div className="relative rounded-xl overflow-hidden border">
                 <img src={image} alt="Waste to classify" className="w-full h-56 object-cover" />
-                <button
-                  onClick={handleReset}
-                  className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70 transition-colors"
-                >
+                <button onClick={handleReset}
+                  className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70 transition-colors">
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <Button
-                className="w-full h-12 text-base gap-2"
-                onClick={handleAnalyze}
-                disabled={isAnalyzing}
-              >
-                {isAnalyzing ? (
-                  <><Loader2 className="h-5 w-5 animate-spin" /> AI is analysing...</>
-                ) : (
-                  <><Zap className="h-5 w-5" /> Classify with AI</>
-                )}
+              <Button className="w-full h-12 text-base gap-2" onClick={handleAnalyze} disabled={isAnalyzing}>
+                {isAnalyzing
+                  ? <><Loader2 className="h-5 w-5 animate-spin" /> AI is analysing...</>
+                  : <><Zap className="h-5 w-5" /> Classify with AI</>
+                }
               </Button>
 
               {isAnalyzing && (
                 <div className="text-center space-y-1">
-                  <p className="text-sm text-muted-foreground">Identifying waste type and bin...</p>
+                  <p className="text-sm text-muted-foreground">Identifying waste type, bin and CO₂ impact...</p>
                   <div className="flex justify-center gap-1">
                     {[0, 150, 300].map((d) => (
-                      <span
-                        key={d}
-                        className="h-2 w-2 rounded-full bg-primary/50 animate-bounce"
-                        style={{ animationDelay: `${d}ms` }}
-                      />
+                      <span key={d} className="h-2 w-2 rounded-full bg-primary/50 animate-bounce"
+                        style={{ animationDelay: `${d}ms` }} />
                     ))}
                   </div>
                 </div>
@@ -321,7 +313,7 @@ export const AIWasteClassifier = ({ isOpen, onClose }: AIWasteClassifierProps) =
           )}
 
           {/* Step 3 — Result */}
-          {result && cfg && (
+          {result && cfg && carbonImpact && (
             <div className="space-y-3">
               {isDemoMode && (
                 <div className="text-xs text-center text-amber-600 bg-amber-50 border border-amber-200 rounded-lg py-1.5 px-3">
@@ -329,6 +321,7 @@ export const AIWasteClassifier = ({ isOpen, onClose }: AIWasteClassifierProps) =
                 </div>
               )}
 
+              {/* Category card */}
               <div className={`flex items-center gap-3 p-4 rounded-xl border ${cfg.badge} shadow-md ${cfg.glow}`}>
                 <div className={`w-14 h-14 rounded-full ${cfg.bg} flex items-center justify-center text-white flex-shrink-0 shadow-lg`}>
                   {cfg.icon}
@@ -336,18 +329,11 @@ export const AIWasteClassifier = ({ isOpen, onClose }: AIWasteClassifierProps) =
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-0.5">
                     <span className="font-bold text-lg capitalize">
-                      {result.category === "e-waste"
-                        ? "E-Waste"
-                        : result.category.charAt(0).toUpperCase() + result.category.slice(1)}{" "}
-                      Waste
+                      {result.category === "e-waste" ? "E-Waste" : result.category.charAt(0).toUpperCase() + result.category.slice(1)} Waste
                     </span>
-                    <Badge variant="outline" className="text-xs">
-                      {result.confidence}% confident
-                    </Badge>
+                    <Badge variant="outline" className="text-xs">{result.confidence}% confident</Badge>
                     {result.recyclable && (
-                      <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
-                        Recyclable ♻️
-                      </Badge>
+                      <Badge className="text-xs bg-green-100 text-green-700 border-green-200">Recyclable ♻️</Badge>
                     )}
                   </div>
                   <p className="font-semibold text-sm">{result.itemName}</p>
@@ -355,39 +341,65 @@ export const AIWasteClassifier = ({ isOpen, onClose }: AIWasteClassifierProps) =
                 </div>
               </div>
 
+              {/* ── CO₂ Impact Card — the new feature ── */}
+              <div className="rounded-xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/20 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Wind className="h-4 w-4 text-green-600 flex-shrink-0" />
+                  <p className="text-sm font-bold text-green-800 dark:text-green-300">
+                    Your CO₂ Impact — This Disposal
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-white dark:bg-background rounded-lg p-2.5 border border-green-100">
+                    <p className="text-lg font-bold text-green-600">{carbonImpact.co2Saved} kg</p>
+                    <p className="text-xs text-muted-foreground leading-tight">CO₂e prevented</p>
+                  </div>
+                  <div className="bg-white dark:bg-background rounded-lg p-2.5 border border-green-100">
+                    <p className="text-lg font-bold text-emerald-600">{carbonImpact.treesEquivalent}</p>
+                    <p className="text-xs text-muted-foreground leading-tight">trees' daily work</p>
+                  </div>
+                  <div className="bg-white dark:bg-background rounded-lg p-2.5 border border-green-100">
+                    <p className="text-lg font-bold text-teal-600">{carbonImpact.kmDrivingEquivalent} km</p>
+                    <p className="text-xs text-muted-foreground leading-tight">driving offset</p>
+                  </div>
+                </div>
+                <p className="text-xs text-green-700 dark:text-green-400 mt-2.5 text-center">
+                  This is tracked in your Carbon Footprint dashboard. Claim points to save it permanently.
+                </p>
+              </div>
+
+              {/* Details */}
               <div className="bg-muted/40 rounded-xl p-4 space-y-3 text-sm">
                 <p>{result.description}</p>
                 <div className="border-t pt-3">
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">
-                    Disposal Instructions
-                  </p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">Disposal Instructions</p>
                   <p>{result.disposalInstructions}</p>
                 </div>
                 {result.tip && (
                   <div className="border-t pt-3">
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">
-                      💡 Eco Tip
-                    </p>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">💡 Eco Tip</p>
                     <p className="text-muted-foreground">{result.tip}</p>
                   </div>
                 )}
               </div>
 
+              {/* Points + carbon claim */}
               {!pointsAwarded ? (
-                <Button
-                  className="w-full h-12 gap-2"
-                  onClick={handleAwardPoints}
-                  disabled={isDemoMode}
-                >
+                <Button className="w-full h-12 gap-2" onClick={handleAwardPoints} disabled={isDemoMode}>
                   <CheckCircle className="h-5 w-5" />
                   {isDemoMode
                     ? "Demo mode — no points awarded"
-                    : `Confirm Disposal & Earn +${result.points} pts`}
+                    : `Confirm Disposal — Earn +${result.points} pts & Save ${carbonImpact.co2Saved} kg CO₂`}
                 </Button>
               ) : (
-                <div className="flex items-center justify-center gap-2 p-3 bg-green-50 rounded-xl border border-green-200 text-green-700">
-                  <CheckCircle className="h-5 w-5" />
-                  <span className="font-semibold">+{result.points} points awarded!</span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-center gap-2 p-3 bg-green-50 rounded-xl border border-green-200 text-green-700">
+                    <CheckCircle className="h-5 w-5" />
+                    <span className="font-semibold">+{result.points} pts · {carbonImpact.co2Saved} kg CO₂ saved! 🌱</span>
+                  </div>
+                  <p className="text-xs text-center text-muted-foreground">
+                    Added to your Carbon Tracker. Check Dashboard → Carbon Footprint.
+                  </p>
                 </div>
               )}
 

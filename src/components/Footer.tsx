@@ -19,7 +19,7 @@ const Footer = () => {
               Your Swachhta Buddy — Join us in creating a cleaner, greener India. Empower communities, track waste, and earn rewards for sustainability.
             </p>
             <p className="text-green-400 text-xs mt-2 font-semibold">
-              Team NeuroX | HACKXTRACT 2026 | Problem ID: Sustainable Development
+              Team NeuroX | 
             </p>
           </div>
 
@@ -48,15 +48,15 @@ const Footer = () => {
           {/* Contact — hidden on mobile, shown on desktop */}
           <div className="hidden md:block">
             <h3 className="font-semibold mb-4">Contact Us</h3>
-            <p className="text-green-200 text-sm mb-2">Email: neurox.hackxtract@gmail.com</p>
-            <p className="text-green-200 text-sm mb-4">Built for HACKXTRACT 2026</p>
+            <p className="text-green-200 text-sm mb-2">Email: neuroxteam23@gmail.com</p>
+            <p className="text-green-200 text-sm mb-4">Built for Environment</p>
             <SocialIcons />
           </div>
         </div>
 
         {/* Social icons on mobile — shown below the grid */}
         <div className="flex items-center justify-between mt-5 md:hidden">
-          <p className="text-green-300 text-xs">neurox.hackxtract@gmail.com</p>
+          <p className="text-green-300 text-xs">neuroxteam23@gmail.com</p>
           <SocialIcons />
         </div>
 

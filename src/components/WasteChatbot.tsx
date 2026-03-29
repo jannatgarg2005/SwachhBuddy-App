@@ -44,23 +44,60 @@ const langLabel = (lang: string) => lang === "hi-IN" ? "🇮🇳 Hindi" : "🇬�
 const hasSpeechSynthesis = () =>
   typeof window !== "undefined" && "speechSynthesis" in window;
 
+// ── Strip text for clean TTS output ──────────────────────────────────────────
+const cleanForSpeech = (text: string): string =>
+  text
+    // Remove all emoji (Unicode ranges)
+    .replace(/[\u{1F300}-\u{1F9FF}]/gu, "")
+    .replace(/[\u{2600}-\u{26FF}]/gu, "")
+    .replace(/[\u{2700}-\u{27BF}]/gu, "")
+    .replace(/[\u{1F000}-\u{1F02F}]/gu, "")
+    .replace(/[\u{1F0A0}-\u{1F0FF}]/gu, "")
+    .replace(/[\u{1F100}-\u{1F1FF}]/gu, "")
+    .replace(/[\u{1F200}-\u{1F2FF}]/gu, "")
+    .replace(/[\u{1F004}]/gu, "")
+    .replace(/[\u{1F0CF}]/gu, "")
+    // Remove markdown bold/italic/headers
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/#{1,6}\s/g, "")
+    // Remove bullet symbols and arrows
+    .replace(/[•·→←↑↓►◄▸▹♦♣♠♥]/g, "")
+    .replace(/[-–—]{2,}/g, ", ")
+    // Remove special chars but keep Hindi (Devanagari), English, digits, punctuation
+    .replace(/[^\u0900-\u097F\w\s,.!?;:()\-]/g, "")
+    // Clean up whitespace
+    .replace(/\n+/g, ". ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
 const doSpeak = (clean: string, lang: "hi-IN" | "en-IN") => {
+  if (!clean) return;
   const utterance  = new SpeechSynthesisUtterance(clean);
   utterance.lang   = lang;
-  utterance.rate   = 0.92;
+  utterance.rate   = 0.88;
   utterance.pitch  = 1.0;
   utterance.volume = 1;
 
   const voices = window.speechSynthesis.getVoices();
 
-  // 1. Exact lang match  2. Same base language  3. Hindi keyword  4. Any English  5. Any voice
-  const preferred =
-    voices.find(v => v.lang === lang) ||
-    voices.find(v => v.lang.startsWith(lang.split("-")[0])) ||
-    (lang === "hi-IN" ? voices.find(v => v.name.toLowerCase().includes("hindi")) : undefined) ||
-    voices.find(v => v.lang.startsWith("en")) ||
-    voices[0];
+  let preferred: SpeechSynthesisVoice | undefined;
+  if (lang === "hi-IN") {
+    preferred =
+      voices.find(v => v.lang === "hi-IN") ||
+      voices.find(v => v.lang === "hi") ||
+      voices.find(v => v.name.toLowerCase().includes("hindi")) ||
+      voices.find(v => v.lang.startsWith("hi"));
+  } else {
+    preferred =
+      voices.find(v => v.lang === "en-IN") ||
+      voices.find(v => v.lang === "en-GB") ||
+      voices.find(v => v.lang === "en-US") ||
+      voices.find(v => v.lang.startsWith("en"));
+  }
 
+  // Final fallback — use whatever is available
+  if (!preferred) preferred = voices[0];
   if (preferred) utterance.voice = preferred;
 
   window.speechSynthesis.cancel();
@@ -70,31 +107,20 @@ const doSpeak = (clean: string, lang: "hi-IN" | "en-IN") => {
 const speakText = (text: string, lang: "hi-IN" | "en-IN" = "en-IN") => {
   if (!hasSpeechSynthesis()) return;
 
-  const clean = text
-    .replace(/\*\*(.*?)\*\*/g, "$1")
-    .replace(/\*(.*?)\*/g, "$1")
-    .replace(/#{1,6}\s/g, "")
-    .replace(/•/g, "")
-    .replace(/\n/g, ". ")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-
+  const clean = cleanForSpeech(text);
   if (!clean) return;
 
   const voices = window.speechSynthesis.getVoices();
 
   if (voices.length > 0) {
-    // Voices already loaded — speak immediately
     doSpeak(clean, lang);
   } else {
-    // Voices not loaded yet — wait for the event then speak
+    // Voices not loaded yet — wait then speak
     const onVoicesChanged = () => {
       window.speechSynthesis.removeEventListener("voiceschanged", onVoicesChanged);
       doSpeak(clean, lang);
     };
     window.speechSynthesis.addEventListener("voiceschanged", onVoicesChanged);
-
-    // Safety fallback: if event never fires within 1s, speak anyway
     setTimeout(() => {
       window.speechSynthesis.removeEventListener("voiceschanged", onVoicesChanged);
       doSpeak(clean, lang);
@@ -304,9 +330,9 @@ const WasteChatbot = () => {
       timestamp: new Date(),
       lang,
     }]);
-    if (voiceMode || lang) {
+    if (voiceMode) {
       const speakLang = lang || lastLangRef.current;
-      setTimeout(() => speakText(content, speakLang), 500);
+      setTimeout(() => speakText(content, speakLang), 400);
     }
   };
 
@@ -537,7 +563,7 @@ const WasteChatbot = () => {
           <div>
             <p className="font-bold text-sm leading-tight">EcoBuddy</p>
             <p className="text-xs text-muted-foreground leading-tight">
-              AI Assistant · {voiceMode ? "🔊 Voice On" : "Type or speak"}
+              AI Assistant · {voiceMode ? "🔊 Voice On — tap to mute" : "🔇 Voice Off — tap to unmute"}
             </p>
           </div>
         </div>

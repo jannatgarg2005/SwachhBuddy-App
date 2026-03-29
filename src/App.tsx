@@ -1,4 +1,4 @@
-// src/App.tsx
+// src/App.tsx  ← UPDATED: added /ragpicker-identity route
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -64,6 +64,10 @@ import { EcoEscapeRoom } from "./components/EcoEscapeRoom";
 import NotFound from "./pages/NotFound";
 import { PointsProvider } from "@/contexts/PointsContext";
 
+// ── NEW: Rag Picker Digital Identity ─────────────────────────────────────────
+import RagPickerIdentityDashboard from "./pages/RagPickerIdentityDashboard";
+// ─────────────────────────────────────────────────────────────────────────────
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -125,6 +129,9 @@ const App = () => (
 
               <Route path="/dashboard/corporate" element={<ProtectedRoute requireAuth={true}><CDashboard /></ProtectedRoute>} />
               <Route path="/dashboard/enduser"   element={<ProtectedRoute requireAuth={true}><EDashboard /></ProtectedRoute>} />
+
+              {/* ── NEW ROUTE ── */}
+              <Route path="/ragpicker-identity" element={<RagPickerIdentityDashboard />} />
 
               <Route path="/manage-waste"    element={<WasteGame />} />
               <Route path="/eco-sorter-game" element={<EcoSorterGame />} />

@@ -304,9 +304,9 @@ const WasteChatbot = () => {
       timestamp: new Date(),
       lang,
     }]);
-    if (voiceMode) {
+    if (voiceMode || lang) {
       const speakLang = lang || lastLangRef.current;
-      setTimeout(() => speakText(content, speakLang), 300);
+      setTimeout(() => speakText(content, speakLang), 500);
     }
   };
 

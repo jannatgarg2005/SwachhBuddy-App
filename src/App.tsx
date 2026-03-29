@@ -66,6 +66,7 @@ import { PointsProvider } from "@/contexts/PointsContext";
 
 // ── NEW: Rag Picker Digital Identity ─────────────────────────────────────────
 import RagPickerIdentityDashboard from "./pages/RagPickerIdentityDashboard";
+import RagPickerStories from "./pages/RagPickerStories";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const queryClient = new QueryClient();
@@ -130,8 +131,9 @@ const App = () => (
               <Route path="/dashboard/corporate" element={<ProtectedRoute requireAuth={true}><CDashboard /></ProtectedRoute>} />
               <Route path="/dashboard/enduser"   element={<ProtectedRoute requireAuth={true}><EDashboard /></ProtectedRoute>} />
 
-              {/* ── NEW ROUTE ── */}
+              {/* ── NEW ROUTES ── */}
               <Route path="/ragpicker-identity" element={<RagPickerIdentityDashboard />} />
+              <Route path="/ragpicker-stories"  element={<RagPickerStories />} />
 
               <Route path="/manage-waste"    element={<WasteGame />} />
               <Route path="/eco-sorter-game" element={<EcoSorterGame />} />

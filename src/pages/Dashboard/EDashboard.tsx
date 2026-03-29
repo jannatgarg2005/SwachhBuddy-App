@@ -1,6 +1,6 @@
-// src/pages/Dashboard/EDashboard.tsx  ← UPDATED: added Rag Picker Identity widget
+// src/pages/Dashboard/EDashboard.tsx  ← UPDATED: tab state restore + learning nav fix
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +32,12 @@ import RagPickerIdentityWidget from "@/components/ragpicker/RagPickerIdentityWid
 const EDashboard: React.FC = () => {
   const { user, userData } = useAuth();
   const { toast }          = useToast();
+  const navigate           = useNavigate();
+  const location           = useLocation();
   const { coins, earn, redeem } = usePoints();
+
+  // Restore last active tab when navigating back
+  const defaultTab = (location.state as any)?.activeTab || "overview";
 
   const [streak, setStreak]             = useState<number>(7);
   const [weeklyGoal]                    = useState<number>(500);
@@ -119,7 +124,7 @@ const EDashboard: React.FC = () => {
 
       {/* ── Tabs ── */}
       <div className="container mx-auto p-3 md:p-5">
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="grid w-full grid-cols-5 gap-1 md:gap-2 rounded-2xl bg-muted/60 p-1.5 md:p-2 shadow-sm">
             {[
               { value: "overview",   icon: <FiHome className="w-4 h-4" />,     label: "Overview" },
@@ -290,10 +295,10 @@ const EDashboard: React.FC = () => {
             <h2 className="text-xl font-bold">Learning & Training</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                { title: "Waste Management Basics", href: "/learning/waste-basics", icon: GraduationCap, desc: "Core SWM knowledge" },
-                { title: "Rag Picker Support", href: "/learning/ragpicker-basics", icon: Users, desc: "Understand waste picker needs" },
-                { title: "Eco Sorter Game", href: "/eco-sorter-game", icon: Gamepad2, desc: "Fun learning through play" },
-                { title: "Digital Identity Guide", href: "/ragpicker-identity", icon: IdCard, desc: "Register & manage rag picker IDs" },
+                { title: "Waste Management Basics", href: "/learning/waste-basics",        icon: GraduationCap, desc: "Core SWM knowledge" },
+                { title: "Rag Picker Support",       href: "/learning/ragpicker-basics",    icon: Users,         desc: "Understand waste picker needs" },
+                { title: "Eco Sorter Game",          href: "/eco-sorter-game",              icon: Gamepad2,      desc: "Fun learning through play" },
+                { title: "Digital Identity Guide",   href: "/ragpicker-identity",           icon: IdCard,        desc: "Register & manage rag picker IDs" },
               ].map(l => (
                 <Card key={l.title} className="hover:shadow-md transition-shadow">
                   <CardContent className="pt-4 pb-4">
@@ -303,9 +308,14 @@ const EDashboard: React.FC = () => {
                         <p className="font-semibold text-sm">{l.title}</p>
                         <p className="text-xs text-muted-foreground">{l.desc}</p>
                       </div>
-                      <Link to={l.href} className="ml-auto">
-                        <Button size="sm" variant="outline">Go</Button>
-                      </Link>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="ml-auto"
+                        onClick={() => navigate(l.href, { state: { from: "/dashboard/enduser", activeTab: "learning" } })}
+                      >
+                        Go
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

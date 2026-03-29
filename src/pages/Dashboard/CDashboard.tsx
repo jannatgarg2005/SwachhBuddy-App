@@ -1,6 +1,6 @@
-// src/pages/Dashboard/CDashboard.tsx  ← UPDATED: added Rag Picker Identity widget
+// src/pages/Dashboard/CDashboard.tsx  ← UPDATED: tab state restore + rag picker stories fix
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card, CardContent, CardHeader, CardTitle, CardDescription,
@@ -33,10 +33,14 @@ import RagPickerIdentityWidget from "@/components/ragpicker/RagPickerIdentityWid
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CDashboard = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const { user }  = useAuth();
   const { toast } = useToast();
   const { coins, earn, redeem } = usePoints();
+
+  // Restore last active tab when navigating back
+  const defaultTab = (location.state as any)?.activeTab || "overview";
 
   const [streak]          = useState<number>(7);
   const [weeklyGoal]      = useState<number>(500);
@@ -78,7 +82,7 @@ const CDashboard = () => {
 
       {/* ── Tabs ── */}
       <div className="container mx-auto p-3 md:p-5">
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="grid w-full grid-cols-5 gap-1 md:gap-2 rounded-2xl bg-muted/60 p-1.5 md:p-2 shadow-sm">
             {[
               { value: "overview",    icon: <FiHome className="w-4 h-4 flex-shrink-0" />,    label: "Overview" },
@@ -160,18 +164,22 @@ const CDashboard = () => {
             <h2 className="text-xl font-bold">Learning Hub</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                { title: "Waste Basics",        href: "/learning/waste-basics",    icon: GraduationCap },
-                { title: "Community Leadership", href: "/learning/community-basics", icon: Users },
-                { title: "Eco Sorter Game",     href: "/eco-sorter-game",           icon: Gamepad2 },
-                { title: "Rag Picker Stories",  href: "/ragpicker-identity",         icon: IdCard },
+                { title: "Waste Basics",         href: "/learning/waste-basics",     icon: GraduationCap },
+                { title: "Community Leadership",  href: "/learning/community-basics", icon: Users },
+                { title: "Eco Sorter Game",      href: "/eco-sorter-game",            icon: Gamepad2 },
+                { title: "Rag Picker Stories",   href: "/ragpicker-stories",          icon: IdCard },
               ].map(l => (
                 <Card key={l.title} className="hover:shadow-md transition-shadow">
                   <CardContent className="pt-4 pb-4 flex items-center gap-3">
                     <l.icon className="h-6 w-6 text-primary" />
                     <p className="font-medium text-sm flex-1">{l.title}</p>
-                    <Link to={l.href}>
-                      <Button size="sm" variant="outline">Go</Button>
-                    </Link>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate(l.href, { state: { from: "/dashboard/corporate", activeTab: "learning" } })}
+                    >
+                      Go
+                    </Button>
                   </CardContent>
                 </Card>
               ))}

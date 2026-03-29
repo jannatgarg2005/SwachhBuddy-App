@@ -1,6 +1,6 @@
 // src/pages/RagPickerIdentityDashboard.tsx
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,9 +33,20 @@ const HOW_IT_WORKS = [
 ];
 
 const RagPickerIdentityDashboard: React.FC = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const { user }  = useAuth();
   const { toast } = useToast();
+
+  // Smart back: if came from a dashboard tab, go back to it with tab state
+  const handleBack = () => {
+    const state = location.state as any;
+    if (state?.from) {
+      navigate(state.from, { state: { activeTab: state.activeTab || "learning" } });
+    } else {
+      navigate(-1);
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
@@ -91,7 +102,7 @@ const RagPickerIdentityDashboard: React.FC = () => {
             variant="ghost"
             size="sm"
             className="text-white hover:bg-white/20 mb-4"
-            onClick={() => navigate(-1)}
+            onClick={handleBack}
           >
             <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Button>

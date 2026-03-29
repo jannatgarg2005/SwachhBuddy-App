@@ -44,9 +44,31 @@ const langLabel = (lang: string) => lang === "hi-IN" ? "🇮🇳 Hindi" : "🇬�
 const hasSpeechSynthesis = () =>
   typeof window !== "undefined" && "speechSynthesis" in window;
 
+const doSpeak = (clean: string, lang: "hi-IN" | "en-IN") => {
+  const utterance  = new SpeechSynthesisUtterance(clean);
+  utterance.lang   = lang;
+  utterance.rate   = 0.92;
+  utterance.pitch  = 1.0;
+  utterance.volume = 1;
+
+  const voices = window.speechSynthesis.getVoices();
+
+  // 1. Exact lang match  2. Same base language  3. Hindi keyword  4. Any English  5. Any voice
+  const preferred =
+    voices.find(v => v.lang === lang) ||
+    voices.find(v => v.lang.startsWith(lang.split("-")[0])) ||
+    (lang === "hi-IN" ? voices.find(v => v.name.toLowerCase().includes("hindi")) : undefined) ||
+    voices.find(v => v.lang.startsWith("en")) ||
+    voices[0];
+
+  if (preferred) utterance.voice = preferred;
+
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+};
+
 const speakText = (text: string, lang: "hi-IN" | "en-IN" = "en-IN") => {
   if (!hasSpeechSynthesis()) return;
-  window.speechSynthesis.cancel();
 
   const clean = text
     .replace(/\*\*(.*?)\*\*/g, "$1")
@@ -57,21 +79,27 @@ const speakText = (text: string, lang: "hi-IN" | "en-IN" = "en-IN") => {
     .replace(/\s{2,}/g, " ")
     .trim();
 
-  const utterance     = new SpeechSynthesisUtterance(clean);
-  utterance.lang      = lang;
-  utterance.rate      = 0.95;
-  utterance.pitch     = 1.05;
-  utterance.volume    = 1;
+  if (!clean) return;
 
   const voices = window.speechSynthesis.getVoices();
-  const preferred = voices.find(v =>
-    v.lang === lang ||
-    v.lang.startsWith(lang.split("-")[0]) ||
-    (lang === "hi-IN" && v.name.toLowerCase().includes("hindi"))
-  );
-  if (preferred) utterance.voice = preferred;
 
-  window.speechSynthesis.speak(utterance);
+  if (voices.length > 0) {
+    // Voices already loaded — speak immediately
+    doSpeak(clean, lang);
+  } else {
+    // Voices not loaded yet — wait for the event then speak
+    const onVoicesChanged = () => {
+      window.speechSynthesis.removeEventListener("voiceschanged", onVoicesChanged);
+      doSpeak(clean, lang);
+    };
+    window.speechSynthesis.addEventListener("voiceschanged", onVoicesChanged);
+
+    // Safety fallback: if event never fires within 1s, speak anyway
+    setTimeout(() => {
+      window.speechSynthesis.removeEventListener("voiceschanged", onVoicesChanged);
+      doSpeak(clean, lang);
+    }, 1000);
+  }
 };
 
 const stopSpeaking = () => {
@@ -276,9 +304,9 @@ const WasteChatbot = () => {
       timestamp: new Date(),
       lang,
     }]);
-    if (voiceMode || lang) {
+    if (voiceMode) {
       const speakLang = lang || lastLangRef.current;
-      setTimeout(() => speakText(content, speakLang), 100);
+      setTimeout(() => speakText(content, speakLang), 300);
     }
   };
 

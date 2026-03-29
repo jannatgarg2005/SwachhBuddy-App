@@ -700,6 +700,1124 @@ export const WasteIntermediateModule = () => (
     lessons={lessons}
   />
 );
+========== C:\Users\jannat garg\OneDrive\Desktop\Projects folder\SwachhBuddy\Swachh-Buddy\src\components\ragpicker\CollectionHistory.tsx ==========
+// src/components/ragpicker/CollectionHistory.tsx
+import React, { useEffect, useState } from "react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { CollectionRecord, getCollectionHistory } from "@/services/ragpickerIdentity";
+import { Timestamp } from "firebase/firestore";
+import { History, MapPin, Scale, Coins } from "lucide-react";
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+  ragPickerId: string;
+  ragPickerName: string;
+}
+
+const MATERIAL_COLORS: Record<string, string> = {
+  Plastic:  "bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200",
+  Paper:    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/60 dark:text-yellow-200",
+  Metal:    "bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200",
+  Glass:    "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/60 dark:text-cyan-200",
+  "E-Waste":"bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200",
+  Mixed:    "bg-orange-100 text-orange-800 dark:bg-orange-900/60 dark:text-orange-200",
+};
+
+const CollectionHistory: React.FC<Props> = ({ isOpen, onClose, ragPickerId, ragPickerName }) => {
+  const [records, setRecords] = useState<CollectionRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) fetchHistory();
+  }, [isOpen]);
+
+  const fetchHistory = async () => {
+    setLoading(true);
+    try {
+      const data = await getCollectionHistory(ragPickerId);
+      setRecords(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (d: Timestamp | Date) => {
+    const dt = d instanceof Timestamp ? d.toDate() : new Date(d);
+    return dt.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+  };
+
+  const totalKg      = records.reduce((a, r) => a + r.weightKg, 0);
+  const totalEarnings = records.reduce((a, r) => a + r.earningsRs, 0);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-violet-700">
+            <History className="h-5 w-5" />
+            Collection History
+          </DialogTitle>
+          <DialogDescription>
+            {ragPickerName} â€” last {records.length} records
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Summary bar */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center">
+            <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{totalKg.toFixed(1)} kg</p>
+            <p className="text-xs text-muted-foreground">Total Collected</p>
+          </div>
+          <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-center">
+            <p className="text-xl font-bold text-amber-700 dark:text-amber-300">â‚¹{totalEarnings.toFixed(0)}</p>
+            <p className="text-xs text-muted-foreground">Total Earned</p>
+          </div>
+        </div>
+
+        {/* Timeline */}
+        {loading ? (
+          <div className="text-center py-8 text-muted-foreground">Loading recordsâ€¦</div>
+        ) : records.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <History className="h-10 w-10 mx-auto mb-2 opacity-30" />
+            <p>No collection records yet.</p>
+            <p className="text-xs mt-1">Use "Log Collection" to add the first entry.</p>
+          </div>
+        ) : (
+          <div className="relative pl-5">
+            {/* Vertical line */}
+            <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-border" />
+
+            <div className="space-y-4">
+              {records.map((r, i) => (
+                <div key={r.id || i} className="relative">
+                  {/* Dot */}
+                  <div className="absolute -left-3.5 top-2 h-2.5 w-2.5 rounded-full bg-violet-500 dark:bg-violet-400 border-2 border-background shadow" />
+
+                  <div className="bg-card border border-border rounded-lg p-3 shadow-sm space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge className={`text-xs font-medium ${MATERIAL_COLORS[r.materialType] || "bg-muted text-foreground"}`}>
+                          {r.materialType}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">{formatDate(r.date)}</span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-bold text-sm text-amber-600 dark:text-amber-400">â‚¹{r.earningsRs}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Scale className="h-3.5 w-3.5" /> {r.weightKg} kg
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Coins className="h-3.5 w-3.5" /> â‚¹{r.ratePerKg}/kg
+                      </span>
+                      {r.locationName && (
+                        <span className="flex items-center gap-1 truncate max-w-[140px]">
+                          <MapPin className="h-3.5 w-3.5 shrink-0" /> {r.locationName}
+                        </span>
+                      )}
+                    </div>
+
+                    {r.notes && (
+                      <p className="text-xs text-muted-foreground italic">{r.notes}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <Button variant="outline" className="w-full" onClick={onClose}>Close</Button>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default CollectionHistory;
+========== C:\Users\jannat garg\OneDrive\Desktop\Projects folder\SwachhBuddy\Swachh-Buddy\src\components\ragpicker\DigitalIDCard.tsx ==========
+// src/components/ragpicker/DigitalIDCard.tsx
+import React from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { RagPickerProfile } from "@/services/ragpickerIdentity";
+import { ShieldCheck, Star, Recycle, Download } from "lucide-react";
+import { Timestamp } from "firebase/firestore";
+
+interface Props {
+  profile: RagPickerProfile;
+  onDownload?: () => void;
+}
+
+const getScoreColor = (score: number) => {
+  if (score >= 700) return "text-green-600";
+  if (score >= 400) return "text-amber-600";
+  return "text-slate-500";
+};
+
+const getScoreBadge = (score: number) => {
+  if (score >= 700) return { label: "Gold", color: "bg-amber-400 text-amber-900" };
+  if (score >= 400) return { label: "Silver", color: "bg-slate-300 text-slate-800" };
+  return { label: "Bronze", color: "bg-amber-700 text-white" };
+};
+
+const DigitalIDCard: React.FC<Props> = ({ profile, onDownload }) => {
+  const badge  = getScoreBadge(profile.swachhScore);
+  const regDate = profile.registeredAt instanceof Timestamp
+    ? profile.registeredAt.toDate().toLocaleDateString("en-IN")
+    : new Date(profile.registeredAt as Date).toLocaleDateString("en-IN");
+
+  return (
+    <div
+      id="digital-id-card"
+      className="relative overflow-hidden rounded-2xl border-2 border-green-700 bg-gradient-to-br from-green-900 via-green-800 to-green-700 text-white shadow-2xl w-full max-w-sm"
+      style={{ aspectRatio: "1.586/1", minHeight: 200 }}
+    >
+      {/* Background pattern */}
+      <div className="absolute inset-0 opacity-5">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <Recycle
+            key={i}
+            className="absolute text-white"
+            style={{ top: `${(i % 4) * 28}%`, left: `${(i % 3) * 38}%`, width: 48, height: 48 }}
+          />
+        ))}
+      </div>
+
+      <div className="relative z-10 p-4 h-full flex flex-col justify-between">
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-green-200 tracking-widest uppercase">
+              <Recycle className="h-3 w-3" /> SwachhBuddy
+            </div>
+            <p className="text-[10px] text-green-300 mt-0.5">Digital Waste Picker Identity</p>
+          </div>
+          {profile.isVerified ? (
+            <div className="flex items-center gap-1 bg-white/20 rounded-full px-2 py-0.5 text-xs">
+              <ShieldCheck className="h-3.5 w-3.5 text-green-200" />
+              <span className="font-semibold">Verified</span>
+            </div>
+          ) : (
+            <Badge variant="outline" className="text-amber-300 border-amber-300 text-[10px]">
+              Pending
+            </Badge>
+          )}
+        </div>
+
+        {/* Name + ID */}
+        <div>
+          <h2 className="text-xl font-bold leading-tight">{profile.name}</h2>
+          <p className="text-xs text-green-300 font-mono">{profile.id}</p>
+          <p className="text-xs text-green-200 mt-0.5">{profile.city} Â· {profile.zone}</p>
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-3 gap-2">
+          {/* Swachh Score */}
+          <div className="bg-white/10 rounded-lg p-2 text-center">
+            <div className={`text-lg font-bold ${getScoreColor(profile.swachhScore)} text-white`}>
+              {profile.swachhScore}
+            </div>
+            <div className="text-[9px] text-green-200 leading-tight">Swachha<br/>Score</div>
+          </div>
+          {/* Total kg */}
+          <div className="bg-white/10 rounded-lg p-2 text-center">
+            <div className="text-lg font-bold">
+              {profile.totalKgCollected.toFixed(0)}<span className="text-xs">kg</span>
+            </div>
+            <div className="text-[9px] text-green-200 leading-tight">Total<br/>Collected</div>
+          </div>
+          {/* Earnings */}
+          <div className="bg-white/10 rounded-lg p-2 text-center">
+            <div className="text-lg font-bold">
+              â‚¹{profile.totalEarningsRs >= 1000
+                ? (profile.totalEarningsRs / 1000).toFixed(1) + "k"
+                : profile.totalEarningsRs.toFixed(0)
+              }
+            </div>
+            <div className="text-[9px] text-green-200 leading-tight">Verified<br/>Earnings</div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between">
+          <div className="text-[9px] text-green-300">Since {regDate}</div>
+          <div className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold ${badge.color}`}>
+            <Star className="h-2.5 w-2.5" /> {badge.label} Member
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface CardWithButtonProps extends Props {
+  showDownload?: boolean;
+}
+
+export const DigitalIDCardWithActions: React.FC<CardWithButtonProps> = ({
+  profile,
+  showDownload = true,
+}) => {
+  const handleDownload = () => {
+    // Simple text fallback
+    const text = [
+      "SWACHH BUDDY DIGITAL IDENTITY",
+      `Name: ${profile.name}`,
+      `ID: ${profile.id}`,
+      `City: ${profile.city} | Zone: ${profile.zone}`,
+      `Swachh Score: ${profile.swachhScore}`,
+      `Total Collected: ${profile.totalKgCollected} kg`,
+      `Verified Earnings: â‚¹${profile.totalEarningsRs}`,
+      `Status: ${profile.isVerified ? "Verified âœ…" : "Pending Verification"}`,
+    ].join("\n");
+
+    const blob = new Blob([text], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `SwachhBuddy-ID-${profile.id}.txt`;
+    a.click();
+  };
+
+  return (
+    <div className="space-y-3">
+      <DigitalIDCard profile={profile} />
+      {showDownload && (
+        <Button
+          variant="outline"
+          className="w-full text-green-700 border-green-300"
+          onClick={handleDownload}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Download ID Card
+        </Button>
+      )}
+    </div>
+  );
+};
+
+export default DigitalIDCard;
+========== C:\Users\jannat garg\OneDrive\Desktop\Projects folder\SwachhBuddy\Swachh-Buddy\src\components\ragpicker\IncomeCertificate.tsx ==========
+// src/components/ragpicker/IncomeCertificate.tsx
+import React, { useEffect, useState } from "react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  RagPickerProfile,
+  MonthlySummary,
+  getMonthlySummary,
+  generateIncomeCertificateText,
+} from "@/services/ragpickerIdentity";
+import { FileText, Download, CheckCircle2, Calendar } from "lucide-react";
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+  profile: RagPickerProfile;
+}
+
+// Build last 6 month options
+const buildMonthOptions = () => {
+  const opts: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = d.toLocaleString("en-IN", { month: "long", year: "numeric" });
+    opts.push({ value, label });
+  }
+  return opts;
+};
+
+const ELIGIBILITY_SCHEMES = [
+  { icon: "ðŸ¦", name: "Jan Dhan Bank Account", desc: "Zero-balance account with RuPay card" },
+  { icon: "ðŸ›¡ï¸", name: "PM Suraksha Bima", desc: "â‚¹2 lakh accident insurance for â‚¹20/yr" },
+  { icon: "ðŸ‘´", name: "PM Shram Yogi Maandhan", desc: "Pension â‚¹3000/month after age 60" },
+  { icon: "ðŸ’°", name: "Micro-loan (SHG/MFI)", desc: "â‚¹5,000â€“â‚¹50,000 working capital loan" },
+  { icon: "ðŸ¥", name: "Ayushman Bharat", desc: "Free health coverage up to â‚¹5 lakh" },
+];
+
+const IncomeCertificate: React.FC<Props> = ({ isOpen, onClose, profile }) => {
+  const monthOptions = buildMonthOptions();
+  const [selectedMonth, setSelectedMonth] = useState(monthOptions[0].value);
+  const [summary, setSummary]   = useState<MonthlySummary | null>(null);
+  const [loading, setLoading]   = useState(false);
+
+  useEffect(() => {
+    if (isOpen) fetchSummary(selectedMonth);
+  }, [isOpen, selectedMonth]);
+
+  const fetchSummary = async (month: string) => {
+    setLoading(true);
+    try {
+      const s = await getMonthlySummary(profile.id, month);
+      setSummary(s);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const monthLabel = monthOptions.find(m => m.value === selectedMonth)?.label || selectedMonth;
+
+  const handleDownload = () => {
+    if (!summary) return;
+    const text = generateIncomeCertificateText(profile, summary, monthLabel);
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `SwachhBuddy-Certificate-${profile.id}-${selectedMonth}.txt`;
+    a.click();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-emerald-700">
+            <FileText className="h-5 w-5" />
+            Verified Income Certificate
+          </DialogTitle>
+          <DialogDescription>
+            Official monthly earnings record â€” accepted for bank, insurance, and loan applications.
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Month selector */}
+        <div className="flex items-center gap-3">
+          <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="flex-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {monthOptions.map(m => (
+                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Certificate card */}
+        <div className="border-2 border-emerald-700 dark:border-emerald-600 rounded-xl overflow-hidden">
+          {/* Header stripe */}
+          <div className="bg-emerald-700 text-white px-4 py-3 flex items-center justify-between">
+            <div>
+              <p className="font-bold text-sm">SwachhBuddy</p>
+              <p className="text-xs text-emerald-200">Digital Income Certificate</p>
+            </div>
+            {profile.isVerified
+              ? <Badge className="bg-white text-emerald-800 text-xs">âœ… Verified</Badge>
+              : <Badge variant="outline" className="border-white text-white text-xs">Pending</Badge>
+            }
+          </div>
+
+          {/* Body */}
+          <div className="p-4 space-y-4">
+            {/* Profile row */}
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground">Name</p>
+                <p className="font-semibold">{profile.name}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Picker ID</p>
+                <p className="font-mono font-semibold text-xs">{profile.id}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">City / Zone</p>
+                <p className="font-semibold text-sm">{profile.city} â€” {profile.zone}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Swachh Score</p>
+                <p className="font-bold text-emerald-600 dark:text-emerald-400">{profile.swachhScore}</p>
+              </div>
+            </div>
+
+            <hr className="border-border" />
+
+            {/* Monthly summary */}
+            {loading ? (
+              <p className="text-center text-muted-foreground text-sm py-4">Loadingâ€¦</p>
+            ) : summary ? (
+              <>
+                <div className="bg-emerald-50 dark:bg-emerald-900/30 rounded-lg p-3">
+                  <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide mb-2">
+                    {monthLabel} â€” Summary
+                  </p>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <p className="text-xl font-bold text-emerald-800 dark:text-emerald-300">{summary.collectionDays}</p>
+                      <p className="text-xs text-muted-foreground">Active Days</p>
+                    </div>
+                    <div>
+                      <p className="text-xl font-bold text-emerald-800 dark:text-emerald-300">{summary.totalKg}</p>
+                      <p className="text-xs text-muted-foreground">Total kg</p>
+                    </div>
+                    <div>
+                      <p className="text-xl font-bold text-emerald-800 dark:text-emerald-300">â‚¹{summary.totalEarningsRs}</p>
+                      <p className="text-xs text-muted-foreground">Earnings</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Material breakdown */}
+                {Object.keys(summary.materialsBreakdown).length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">Material Breakdown</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {Object.entries(summary.materialsBreakdown).map(([mat, kg]) => (
+                        <Badge key={mat} variant="outline" className="text-xs">
+                          {mat}: {(kg as number).toFixed(1)} kg
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {summary.totalKg === 0 && (
+                  <p className="text-center text-sm text-muted-foreground py-2">
+                    No collections recorded this month yet.
+                  </p>
+                )}
+              </>
+            ) : null}
+
+            <hr className="border-border" />
+
+            {/* Eligibility */}
+            <div>
+              <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide mb-2">
+                Eligible Government Schemes
+              </p>
+              <div className="space-y-1.5">
+                {ELIGIBILITY_SCHEMES.map(s => (
+                  <div key={s.name} className="flex items-start gap-2 text-sm">
+                    <span className="shrink-0">{s.icon}</span>
+                    <div>
+                      <span className="font-medium">{s.name}</span>
+                      <span className="text-muted-foreground text-xs ml-1">â€” {s.desc}</span>
+                    </div>
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 ml-auto mt-0.5" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <p className="text-[10px] text-muted-foreground text-center">
+              Issued by SwachhBuddy Digital Platform Â· {new Date().toLocaleDateString("en-IN")}
+            </p>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={onClose}>Close</Button>
+          <Button
+            className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white"
+            onClick={handleDownload}
+            disabled={!summary}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Download Certificate
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default IncomeCertificate;
+========== C:\Users\jannat garg\OneDrive\Desktop\Projects folder\SwachhBuddy\Swachh-Buddy\src\components\ragpicker\LogCollectionModal.tsx ==========
+// src/components/ragpicker/LogCollectionModal.tsx
+import React, { useState } from "react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import {
+  logCollectionRecord,
+  CollectionRecord,
+  RATE_CARD,
+  findRagPickerByPhone,
+  RagPickerProfile,
+} from "@/services/ragpickerIdentity";
+import { Package, MapPin, Scale, Coins, Phone } from "lucide-react";
+import { Timestamp } from "firebase/firestore";
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+  /** Pass in if already known from context */
+  ragPickerProfile?: RagPickerProfile | null;
+  verifyingEmployeeId?: string;
+}
+
+const MATERIAL_TYPES: CollectionRecord["materialType"][] = [
+  "Plastic", "Paper", "Metal", "Glass", "E-Waste", "Mixed",
+];
+
+const LogCollectionModal: React.FC<Props> = ({
+  isOpen,
+  onClose,
+  ragPickerProfile,
+  verifyingEmployeeId,
+}) => {
+  const { toast } = useToast();
+  const [loading, setLoading]   = useState(false);
+  const [lookupPhone, setLookupPhone] = useState("");
+  const [profile, setProfile]   = useState<RagPickerProfile | null>(ragPickerProfile || null);
+  const [form, setForm] = useState({
+    materialType: "Plastic" as CollectionRecord["materialType"],
+    weightKg: "",
+    locationName: "",
+    notes: "",
+  });
+
+  const estimatedEarnings =
+    parseFloat(form.weightKg) > 0
+      ? (parseFloat(form.weightKg) * RATE_CARD[form.materialType]).toFixed(2)
+      : "0.00";
+
+  const handleLookup = async () => {
+    if (lookupPhone.length < 10) return;
+    setLoading(true);
+    try {
+      const found = await findRagPickerByPhone(lookupPhone);
+      if (found) {
+        setProfile(found);
+        toast({ title: `Found: ${found.name}`, description: `ID: ${found.id}` });
+      } else {
+        toast({
+          title: "No rag picker found with that number.",
+          description: "Please register them first using 'Register New'.",
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      if (err?.code === "permission-denied") {
+        toast({
+          title: "Firestore rules not set",
+          description: "Add ragpickers rules in Firebase console. See README.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Lookup failed", description: err?.message, variant: "destructive" });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLog = async () => {
+    if (!profile) { toast({ title: "No rag picker selected", variant: "destructive" }); return; }
+    if (!form.weightKg || parseFloat(form.weightKg) <= 0) {
+      toast({ title: "Enter a valid weight", variant: "destructive" }); return;
+    }
+    if (!form.locationName) {
+      toast({ title: "Enter pickup location", variant: "destructive" }); return;
+    }
+    setLoading(true);
+    try {
+      const record = await logCollectionRecord({
+        ragPickerId: profile.id,
+        date: Timestamp.now(),
+        weightKg: parseFloat(form.weightKg),
+        materialType: form.materialType,
+        locationName: form.locationName,
+        ratePerKg: RATE_CARD[form.materialType],
+        verifiedByEmployeeId: verifyingEmployeeId,
+        notes: form.notes,
+      });
+      toast({
+        title: "Collection Logged âœ…",
+        description: `${form.weightKg} kg ${form.materialType} â€” â‚¹${record.earningsRs} earned`,
+      });
+      handleClose();
+    } catch {
+      toast({ title: "Failed to log collection", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setForm({ materialType: "Plastic", weightKg: "", locationName: "", notes: "" });
+    setLookupPhone("");
+    if (!ragPickerProfile) setProfile(null);
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-blue-700">
+            <Package className="h-5 w-5" />
+            Log Daily Collection
+          </DialogTitle>
+          <DialogDescription>
+            Record today's waste pickup â€” timestamped and verified on the blockchain of service.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Rag Picker lookup */}
+          {!profile ? (
+            <div className="space-y-2 p-3 bg-muted/40 rounded-lg border">
+              <Label className="flex items-center gap-1">
+                <Phone className="h-3.5 w-3.5" /> Find Rag Picker by Phone
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="10-digit mobile"
+                  value={lookupPhone}
+                  onChange={e => setLookupPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                  maxLength={10}
+                />
+                <Button
+                  variant="outline"
+                  onClick={handleLookup}
+                  disabled={loading || lookupPhone.length < 10}
+                >
+                  Find
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
+              <div>
+                <p className="font-semibold text-green-800 dark:text-green-300">{profile.name}</p>
+                <p className="text-xs text-green-600 dark:text-green-400">{profile.id} Â· Score: {profile.swachhScore}</p>
+              </div>
+              {!ragPickerProfile && (
+                <Button variant="ghost" size="sm" onClick={() => setProfile(null)}>Change</Button>
+              )}
+            </div>
+          )}
+
+          {/* Material type */}
+          <div className="space-y-1">
+            <Label>Material Type</Label>
+            <Select
+              value={form.materialType}
+              onValueChange={v => setForm(f => ({ ...f, materialType: v as CollectionRecord["materialType"] }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MATERIAL_TYPES.map(m => (
+                  <SelectItem key={m} value={m}>
+                    {m} â€” â‚¹{RATE_CARD[m]}/kg
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Weight */}
+          <div className="space-y-1">
+            <Label className="flex items-center gap-1">
+              <Scale className="h-3.5 w-3.5" /> Weight (kg)
+            </Label>
+            <Input
+              type="number"
+              min="0"
+              step="0.1"
+              placeholder="e.g. 12.5"
+              value={form.weightKg}
+              onChange={e => setForm(f => ({ ...f, weightKg: e.target.value }))}
+            />
+          </div>
+
+          {/* Location */}
+          <div className="space-y-1">
+            <Label className="flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5" /> Pickup Location
+            </Label>
+            <Input
+              placeholder="e.g. Block C, Sector 12, Rohini"
+              value={form.locationName}
+              onChange={e => setForm(f => ({ ...f, locationName: e.target.value }))}
+            />
+          </div>
+
+          {/* Earnings preview */}
+          <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <span className="flex items-center gap-1 text-sm text-amber-700 dark:text-amber-300">
+              <Coins className="h-4 w-4" /> Estimated Earnings
+            </span>
+            <span className="text-lg font-bold text-amber-800 dark:text-amber-200">â‚¹ {estimatedEarnings}</span>
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-1">
+            <Label>Notes (optional)</Label>
+            <Input
+              placeholder="Any remarksâ€¦"
+              value={form.notes}
+              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+            />
+          </div>
+
+          <div className="flex gap-2 pt-1">
+            <Button variant="outline" className="flex-1" onClick={handleClose}>Cancel</Button>
+            <Button
+              className="flex-1 bg-blue-700 hover:bg-blue-800 text-white"
+              onClick={handleLog}
+              disabled={loading || !profile}
+            >
+              {loading ? "Savingâ€¦" : "Log Collection"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default LogCollectionModal;
+========== C:\Users\jannat garg\OneDrive\Desktop\Projects folder\SwachhBuddy\Swachh-Buddy\src\components\ragpicker\RagPickerIdentityWidget.tsx ==========
+// src/components/ragpicker/RagPickerIdentityWidget.tsx
+// Compact card widget for embedding in CDashboard / EDashboard quick-actions
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { IdCard, UserPlus, Package, ArrowRight } from "lucide-react";
+import RagPickerRegistration from "./RagPickerRegistration";
+import LogCollectionModal from "./LogCollectionModal";
+import { RagPickerProfile } from "@/services/ragpickerIdentity";
+
+interface Props {
+  /** If passed, skip registration and go straight to logging */
+  preloadedProfile?: RagPickerProfile | null;
+  verifyingEmployeeId?: string;
+}
+
+const RagPickerIdentityWidget: React.FC<Props> = ({ preloadedProfile, verifyingEmployeeId }) => {
+  const navigate = useNavigate();
+  const [showRegister, setShowRegister] = useState(false);
+  const [showLog, setShowLog]           = useState(false);
+  const [profile, setProfile]           = useState<RagPickerProfile | null>(preloadedProfile || null);
+
+  return (
+    <>
+      <Card className="border-2 border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/20 shadow-sm">
+        <CardContent className="pt-4 pb-4">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="bg-green-700 text-white rounded-lg p-2 shrink-0">
+              <IdCard className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-green-800 dark:text-green-300">Rag Picker Digital ID</h3>
+              <p className="text-xs text-green-600 dark:text-green-400">
+                Register waste pickers Â· log collections Â· generate income certificates
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8 gap-1"
+              onClick={() => setShowRegister(true)}
+            >
+              <UserPlus className="h-3.5 w-3.5" /> Register
+            </Button>
+            <Button
+              size="sm"
+              className="bg-amber-600 hover:bg-amber-700 text-white text-xs h-8 gap-1"
+              onClick={() => setShowLog(true)}
+            >
+              <Package className="h-3.5 w-3.5" /> Log Collection
+            </Button>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full mt-2 text-green-700 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/40 text-xs gap-1"
+            onClick={() => navigate("/ragpicker-identity")}
+          >
+            Open Full Dashboard <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
+        </CardContent>
+      </Card>
+
+      <RagPickerRegistration
+        isOpen={showRegister}
+        onClose={() => setShowRegister(false)}
+        onRegistered={p => { setProfile(p); setShowRegister(false); }}
+      />
+      <LogCollectionModal
+        isOpen={showLog}
+        onClose={() => setShowLog(false)}
+        ragPickerProfile={profile}
+        verifyingEmployeeId={verifyingEmployeeId}
+      />
+    </>
+  );
+};
+
+export default RagPickerIdentityWidget;
+========== C:\Users\jannat garg\OneDrive\Desktop\Projects folder\SwachhBuddy\Swachh-Buddy\src\components\ragpicker\RagPickerRegistration.tsx ==========
+// src/components/ragpicker/RagPickerRegistration.tsx
+import React, { useState } from "react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { registerRagPicker, findRagPickerByPhone, RagPickerProfile } from "@/services/ragpickerIdentity";
+import { UserCheck, Phone, MapPin, Shield } from "lucide-react";
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+  onRegistered?: (profile: RagPickerProfile) => void;
+}
+
+const ZONES = [
+  "North Delhi", "South Delhi", "East Delhi", "West Delhi",
+  "Central Delhi", "Noida", "Gurugram", "Faridabad",
+];
+
+const RagPickerRegistration: React.FC<Props> = ({ isOpen, onClose, onRegistered }) => {
+  const { toast } = useToast();
+  const [step, setStep]       = useState<"check" | "form" | "done">("check");
+  const [loading, setLoading] = useState(false);
+  const [phone, setPhone]     = useState("");
+  const [existingProfile, setExistingProfile] = useState<RagPickerProfile | null>(null);
+
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    city: "Delhi",
+    zone: "",
+    aadhaarLast4: "",
+  });
+
+  const handlePhoneCheck = async () => {
+    if (phone.length < 10) {
+      toast({ title: "Enter a valid 10-digit phone number", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const existing = await findRagPickerByPhone(phone);
+      if (existing) {
+        setExistingProfile(existing);
+        toast({ title: "Profile Found! ðŸ‘‹", description: `Welcome back, ${existing.name}` });
+        onRegistered?.(existing);
+        onClose();
+      } else {
+        // No existing profile â€” proceed to registration form
+        setForm(f => ({ ...f, phone }));
+        setStep("form");
+      }
+    } catch (err: any) {
+      // Permission denied = Firestore rules not set yet.
+      // We still let the user proceed to registration â€” the write will work
+      // once the first doc is created (Firestore auto-creates the collection).
+      console.warn("Phone check error (likely new collection):", err?.code, err?.message);
+      setForm(f => ({ ...f, phone }));
+      setStep("form");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async () => {
+    if (!form.name || !form.zone) {
+      toast({ title: "Please fill all required fields", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const profile = await registerRagPicker(form);
+      toast({
+        title: "Digital Identity Created! ðŸŽ‰",
+        description: `ID: ${profile.id} â€” Welcome to the formal economy!`,
+      });
+      setStep("done");
+      onRegistered?.(profile);
+    } catch {
+      toast({ title: "Registration failed. Try again.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setStep("check");
+    setPhone("");
+    setForm({ name: "", phone: "", address: "", city: "Delhi", zone: "", aadhaarLast4: "" });
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-green-700">
+            <UserCheck className="h-5 w-5" />
+            Rag Picker Digital Identity
+          </DialogTitle>
+          <DialogDescription>
+            Register waste pickers to give them verified income records and access to formal services.
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* â”€â”€ Step 1: Phone check â”€â”€ */}
+        {step === "check" && (
+          <div className="space-y-4">
+            <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm text-amber-800 dark:text-amber-300">
+              ðŸŒ <strong>4 million</strong> waste pickers in India have no formal identity.
+              SwachhBuddy changes that â€” starting here.
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="flex items-center gap-1">
+                <Phone className="h-4 w-4" /> Mobile Number <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="phone"
+                placeholder="Enter 10-digit mobile number"
+                value={phone}
+                onChange={e => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                maxLength={10}
+              />
+            </div>
+            <Button
+              className="w-full bg-green-700 hover:bg-green-800 text-white"
+              onClick={handlePhoneCheck}
+              disabled={loading || phone.length < 10}
+            >
+              {loading ? "Checkingâ€¦" : "Check & Continue"}
+            </Button>
+          </div>
+        )}
+
+        {/* â”€â”€ Step 2: Registration form â”€â”€ */}
+        {step === "form" && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-3">
+              <div className="space-y-1">
+                <Label>Full Name <span className="text-red-500">*</span></Label>
+                <Input
+                  placeholder="Waste picker's full name"
+                  value={form.name}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Mobile <span className="text-red-500">*</span></Label>
+                <Input value={form.phone} disabled />
+              </div>
+              <div className="space-y-1">
+                <Label className="flex items-center gap-1">
+                  <MapPin className="h-3.5 w-3.5" /> Address
+                </Label>
+                <Input
+                  placeholder="Street / Colony"
+                  value={form.address}
+                  onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Zone / Area <span className="text-red-500">*</span></Label>
+                <Select value={form.zone} onValueChange={v => setForm(f => ({ ...f, zone: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select zone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ZONES.map(z => (
+                      <SelectItem key={z} value={z}>{z}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="flex items-center gap-1">
+                  <Shield className="h-3.5 w-3.5" /> Aadhaar (last 4 digits only)
+                </Label>
+                <Input
+                  placeholder="e.g. 4582"
+                  value={form.aadhaarLast4}
+                  onChange={e => setForm(f => ({ ...f, aadhaarLast4: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
+                  maxLength={4}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <Button variant="outline" className="flex-1" onClick={() => setStep("check")}>
+                Back
+              </Button>
+              <Button
+                className="flex-1 bg-green-700 hover:bg-green-800 text-white"
+                onClick={handleRegister}
+                disabled={loading}
+              >
+                {loading ? "Registeringâ€¦" : "Create Digital ID"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* â”€â”€ Step 3: Done â”€â”€ */}
+        {step === "done" && (
+          <div className="text-center space-y-4 py-4">
+            <div className="text-5xl">ðŸ†”</div>
+            <h3 className="text-lg font-bold text-green-700">Digital Identity Created!</h3>
+            <p className="text-sm text-muted-foreground">
+              This waste picker now has a verified digital record. They can use this to
+              open a Jan Dhan account, get insurance, and access microloans.
+            </p>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {["Jan Dhan", "Insurance", "Microloan"].map(s => (
+                <Badge key={s} variant="outline" className="text-green-700 border-green-300 py-1.5">
+                  âœ… {s}
+                </Badge>
+              ))}
+            </div>
+            <Button className="w-full" onClick={handleClose}>Done</Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default RagPickerRegistration;
 ========== C:\Users\jannat garg\OneDrive\Desktop\Projects folder\SwachhBuddy\Swachh-Buddy\src\components\ui\accordion.tsx ==========
 import * as React from "react";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
@@ -8622,7 +9740,7 @@ const Footer = () => {
               Your Swachhta Buddy â€” Join us in creating a cleaner, greener India. Empower communities, track waste, and earn rewards for sustainability.
             </p>
             <p className="text-green-400 text-xs mt-2 font-semibold">
-              Team NeuroX | 
+              Team NeuroX | Built for Environment | 2026
             </p>
           </div>
 
@@ -12523,17 +13641,22 @@ const UserProfile = ({ onBack }: UserProfileProps) => {
 export default UserProfile;
 ========== C:\Users\jannat garg\OneDrive\Desktop\Projects folder\SwachhBuddy\Swachh-Buddy\src\components\WasteChatbot.tsx ==========
 // src/components/WasteChatbot.tsx
+// EcoBuddy Voice Mode â€” Web Speech API (recognition + synthesis)
+// Supports Hindi, English, Hinglish â€” auto-detected, spoken back in same language
+
 import { useState, useRef, useEffect, MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Send, User, X, Loader2, RefreshCw } from "lucide-react";
+import { Send, User, X, Loader2, RefreshCw, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 
 interface Message {
   id: string;
   content: string;
   sender: "user" | "bot";
   timestamp: Date;
+  isVoice?: boolean;    // was this message sent via voice?
+  lang?: string;        // detected language
 }
 
 interface ApiMessage {
@@ -12543,12 +13666,74 @@ interface ApiMessage {
 
 const BUBBLE_SIZE      = 56;
 const CHATBOX_WIDTH    = 384;
-const CHATBOX_HEIGHT   = 520;
+const CHATBOX_HEIGHT   = 540;
 const VIEWPORT_PADDING = 24;
 
 const isLocalhost = () =>
   typeof window !== "undefined" &&
   (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
+// â”€â”€ Language detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Returns "hi-IN" for Hindi/Hinglish, "en-IN" for English
+const detectLanguage = (text: string): "hi-IN" | "en-IN" => {
+  const hindiWords = /\b(kahan|kya|yeh|hai|hain|kaise|kyun|main|mera|meri|aur|lekin|nahi|haan|theek|achha|bhai|didi|bolo|batao|karo|dispose|fridge|purana|naya|ghar|paani|khana|kabhi|abhi|thoda|bahut|sab|jo|woh|iska|uska|kuch|matlab|samajh|dekho|sunno|please|zaroor|bilkul|sirf|toh|toh|phir|matlab|seedha|seedhe|yahan|wahan|idhar|udhar|zyada|kam|pura|sahi|galat|pata|maloom|chahiye|lagta|milta|dena|lena|rakhna|daalna|phenko|uthao)\b/i;
+  const devanagari = /[\u0900-\u097F]/;
+  return (hindiWords.test(text) || devanagari.test(text)) ? "hi-IN" : "en-IN";
+};
+
+// â”€â”€ Voice label shown in UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const langLabel = (lang: string) => lang === "hi-IN" ? "ðŸ‡®ðŸ‡³ Hindi" : "ðŸ‡¬ðŸ‡§ English";
+
+// â”€â”€ Web Speech API availability â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const hasSpeechRecognition = () =>
+  typeof window !== "undefined" &&
+  ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+
+const hasSpeechSynthesis = () =>
+  typeof window !== "undefined" && "speechSynthesis" in window;
+
+// â”€â”€ Speak text aloud â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+let currentUtterance: SpeechSynthesisUtterance | null = null;
+
+const speakText = (text: string, lang: "hi-IN" | "en-IN" = "en-IN") => {
+  if (!hasSpeechSynthesis()) return;
+
+  // Cancel any ongoing speech
+  window.speechSynthesis.cancel();
+
+  // Strip markdown before speaking
+  const clean = text
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/#{1,6}\s/g, "")
+    .replace(/â€¢/g, "")
+    .replace(/\n/g, ". ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  const utterance = new SpeechSynthesisUtterance(clean);
+  utterance.lang  = lang;
+  utterance.rate  = 0.95;
+  utterance.pitch = 1.05;
+  utterance.volume = 1;
+
+  // Try to find a matching voice
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v =>
+    v.lang === lang ||
+    v.lang.startsWith(lang.split("-")[0]) ||
+    (lang === "hi-IN" && v.name.toLowerCase().includes("hindi"))
+  );
+  if (preferred) utterance.voice = preferred;
+
+  currentUtterance = utterance;
+  window.speechSynthesis.speak(utterance);
+};
+
+const stopSpeaking = () => {
+  if (hasSpeechSynthesis()) window.speechSynthesis.cancel();
+  currentUtterance = null;
+};
 
 // â”€â”€ Comprehensive local fallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const buildFallback = (q: string): string => {
@@ -12563,11 +13748,14 @@ const buildFallback = (q: string): string => {
   if (s.match(/plastic|dry|recycl/))
     return "ðŸ”µ **Dry/Recyclable waste â†’ Blue Bin**\n\nâ€¢ Paper, cardboard, plastic bottles, glass, metals\nâ€¢ Keep dry and clean â€” contamination reduces value\nâ€¢ Earn +15 pts per verified dry waste disposal on Swachh Buddy!";
 
-  if (s.match(/food|vegetable|fruit|peel|cooked|rice|roti|sabzi|organic/))
+  if (s.match(/food|vegetable|fruit|peel|cooked|rice|roti|sabzi|organic|khana|peels/))
     return "ðŸŸ¢ **Food waste â†’ Green (Wet Waste) bin**\n\nâ€¢ All cooked and uncooked food scraps go here\nâ€¢ Never mix with dry waste â€” ruins recyclable value\nâ€¢ 1 kg food waste makes ~0.3 kg compost in 60 days ðŸŒ±";
 
   if (s.match(/compost|composting/))
     return "ðŸŒ± **How to Compost at Home:**\n\n1. Green bin scraps + dry leaves in a covered container\n2. Turn weekly, keep slightly moist\n3. Ready in **45â€“60 days** â€” rich fertilizer!\n\nVermicomposting with earthworms is faster (30â€“45 days) ðŸª±";
+
+  if (s.match(/fridge|refrigerator|washing machine|ac|air condition|geyser|appliance|purana|dispose/))
+    return "ðŸŸ¡ **Large appliances (fridge, AC, washing machine) â†’ E-Waste collection**\n\nâ€¢ Contact your municipality for bulk e-waste pickup\nâ€¢ Never dump in regular bins â€” refrigerants are toxic\nâ€¢ Use Swachh Buddy's Schedule Pickup feature â†’ earn **+75 pts** âš¡\nâ€¢ Many brands offer buy-back schemes â€” ask your dealer!";
 
   if (s.match(/phone|mobile|laptop|computer|cable|charger|electronic/))
     return "ðŸŸ¡ **Electronics â†’ Yellow (E-Waste) collection**\n\nâ€¢ Never in regular bins â€” toxic metals pollute soil\nâ€¢ Use Swachh Buddy's E-Waste Day for **+75 pts** âš¡\nâ€¢ Wipe personal data before disposing!";
@@ -12581,7 +13769,7 @@ const buildFallback = (q: string): string => {
   if (s.match(/chemical|paint|pesticide|bleach|acid/))
     return "ðŸ”´ **Chemicals â†’ Red (Hazardous) bin**\n\nâ€¢ NEVER pour down drains â€” contaminates groundwater\nâ€¢ Keep in original containers with labels\nâ€¢ Contact municipality for hazardous collection â˜£ï¸";
 
-  if (s.match(/which bin|what bin|where.*put|segregat|sort/))
+  if (s.match(/which bin|what bin|where.*put|segregat|sort|kahan|daalna/))
     return "ðŸ—‘ï¸ **India's 4-Bin System:**\n\nâ€¢ ðŸŸ¢ **Green** â€” Wet/organic (food, peels, garden)\nâ€¢ ðŸ”µ **Blue** â€” Dry/recyclable (paper, plastic, glass, metal)\nâ€¢ ðŸ”´ **Red** â€” Hazardous (chemicals, medicines, paint)\nâ€¢ ðŸŸ¡ **Yellow** â€” E-Waste (electronics, batteries)";
 
   if (s.match(/point|earn|reward|coin|redeem/))
@@ -12605,37 +13793,50 @@ const buildFallback = (q: string): string => {
   if (s.match(/learn|train|module|course|certif/))
     return "ðŸŽ“ **Training Modules:**\n\nâ€¢ 3 core levels: Basics â†’ Intermediate â†’ Advanced\nâ€¢ Complete all â†’ earn a **certificate + +100 pts** each\nâ€¢ Go to the Learn tab ðŸ“œ";
 
-  if (s.match(/thank|thanks|great|perfect|helpful|awesome/))
+  if (s.match(/thank|thanks|great|perfect|helpful|awesome|shukriya|dhanyawad/))
     return "You're welcome! ðŸ˜Š\n\nEvery correct waste disposal makes India cleaner. Keep it up! ðŸ‡®ðŸ‡³ðŸŒ±";
 
-  if (s.match(/who are you|what are you|your name|introduce/))
-    return "I'm **EcoBuddy** ðŸŒ± â€” the AI assistant for Swachh Buddy.\n\nI can tell you which bin any item goes in, guide you through app features, help you earn maximum points, and answer general questions!\n\nAsk me anything!";
+  if (s.match(/who are you|what are you|your name|introduce|kaun ho|kya ho/))
+    return "I'm **EcoBuddy** ðŸŒ± â€” the AI assistant for Swachh Buddy.\n\nI can tell you which bin any item goes in, guide you through app features, help you earn maximum points, and answer questions in Hindi, English, or Hinglish!\n\nAsk me anything!";
 
-  return "I'd love to help! Ask me:\n\nâ€¢ ðŸ—‘ï¸ Which bin any item belongs in\nâ€¢ ðŸ“± App features â€” QR scanning, points, map\nâ€¢ â™»ï¸ Recycling and composting tips\nâ€¢ ðŸ¤– Any general question!";
+  return "I'd love to help! Ask me:\n\nâ€¢ ðŸ—‘ï¸ Which bin any item belongs in\nâ€¢ ðŸ“± App features â€” QR scanning, points, map\nâ€¢ â™»ï¸ Recycling and composting tips\nâ€¢ ðŸŽ¤ You can also speak to me using the mic button!";
 };
 
+// â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const WasteChatbot = () => {
   const [isOpen, setIsOpen]             = useState(false);
   const [messages, setMessages]         = useState<Message[]>([{
     id: "1",
-    content: "Hello! ðŸ‘‹ I'm **EcoBuddy**, your AI waste management assistant.\n\nAsk me anything about waste disposal, app features, how to earn points â€” or any general question!",
+    content: "Hello! ðŸ‘‹ I'm **EcoBuddy**, your AI waste management assistant.\n\nAsk me anything â€” or tap ðŸŽ¤ to **speak** in Hindi, English, or Hinglish!",
     sender: "bot",
     timestamp: new Date(),
   }]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading]       = useState(false);
-  const scrollRef                       = useRef<HTMLDivElement>(null);
+
+  // â”€â”€ Voice state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const [isListening, setIsListening]   = useState(false);
+  const [isSpeaking, setIsSpeaking]     = useState(false);
+  const [voiceMode, setVoiceMode]       = useState(false);   // global voice-response toggle
+  const [transcript, setTranscript]     = useState("");      // live interim transcript
+  const [micError, setMicError]         = useState("");
+  const recognitionRef                  = useRef<any>(null);
+  const lastLangRef                     = useRef<"hi-IN" | "en-IN">("en-IN");
+
+  // â”€â”€ Drag state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const scrollRef    = useRef<HTMLDivElement>(null);
   const [position, setPosition]         = useState({ x: 0, y: 0 });
   const [chatboxPos, setChatboxPos]     = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging]     = useState(false);
-  const dragOffset                      = useRef({ x: 0, y: 0 });
-  const wasDragged                      = useRef(false);
+  const dragOffset   = useRef({ x: 0, y: 0 });
+  const wasDragged   = useRef(false);
   const [showGreeting, setShowGreeting] = useState(false);
   const [showDot, setShowDot]           = useState(false);
 
+  // â”€â”€ Init position â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     setPosition({
-      x: window.innerWidth - BUBBLE_SIZE - VIEWPORT_PADDING,
+      x: window.innerWidth  - BUBBLE_SIZE - VIEWPORT_PADDING,
       y: window.innerHeight - BUBBLE_SIZE - VIEWPORT_PADDING,
     });
   }, []);
@@ -12654,15 +13855,16 @@ const WasteChatbot = () => {
 
   useEffect(() => {
     if (isOpen) {
-      const idealX = position.x - CHATBOX_WIDTH + BUBBLE_SIZE;
+      const idealX = position.x - CHATBOX_WIDTH  + BUBBLE_SIZE;
       const idealY = position.y - CHATBOX_HEIGHT + BUBBLE_SIZE;
       setChatboxPos({
-        x: Math.max(VIEWPORT_PADDING, Math.min(idealX, window.innerWidth - CHATBOX_WIDTH - VIEWPORT_PADDING)),
+        x: Math.max(VIEWPORT_PADDING, Math.min(idealX, window.innerWidth  - CHATBOX_WIDTH  - VIEWPORT_PADDING)),
         y: Math.max(VIEWPORT_PADDING, Math.min(idealY, window.innerHeight - CHATBOX_HEIGHT - VIEWPORT_PADDING)),
       });
     }
   }, [isOpen, position]);
 
+  // â”€â”€ Drag â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     const onMove = (e: globalThis.MouseEvent) => {
       wasDragged.current = true;
@@ -12695,28 +13897,60 @@ const WasteChatbot = () => {
     setIsDragging(true);
   };
 
+  // â”€â”€ Auto scroll â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages]);
+  }, [messages, transcript]);
 
-  const addBotMessage = (content: string) => {
+  // â”€â”€ Track speech synthesis speaking state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  useEffect(() => {
+    if (!hasSpeechSynthesis()) return;
+    const interval = setInterval(() => {
+      setIsSpeaking(window.speechSynthesis.speaking);
+    }, 200);
+    return () => clearInterval(interval);
+  }, []);
+
+  // â”€â”€ Cleanup on unmount â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  useEffect(() => {
+    return () => {
+      stopSpeaking();
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
+  // â”€â”€ Add bot message â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const addBotMessage = (content: string, lang?: "hi-IN" | "en-IN") => {
     setMessages(prev => [...prev, {
       id: (Date.now() + 1).toString(),
       content,
       sender: "bot",
       timestamp: new Date(),
+      lang,
     }]);
+
+    // Speak if voice mode is on
+    if (voiceMode || lang) {
+      const speakLang = lang || lastLangRef.current;
+      setTimeout(() => speakText(content, speakLang), 100);
+    }
   };
 
-  const sendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+  // â”€â”€ Send message (text or voice) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const sendMessage = async (overrideText?: string, isVoice = false) => {
+    const query = (overrideText || inputMessage).trim();
+    if (!query || isLoading) return;
 
-    const query = inputMessage.trim();
+    const detectedLang = detectLanguage(query);
+    lastLangRef.current = detectedLang;
+
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
       content: query,
       sender: "user",
       timestamp: new Date(),
+      isVoice,
+      lang: detectedLang,
     }]);
     setInputMessage("");
     setIsLoading(true);
@@ -12730,55 +13964,139 @@ const WasteChatbot = () => {
     try {
       if (isLocalhost()) {
         await new Promise(r => setTimeout(r, 600));
-        addBotMessage(buildFallback(query));
+        addBotMessage(buildFallback(query), detectedLang);
         return;
       }
 
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify({ messages: apiMessages }),
       });
 
       const responseText = await response.text();
 
       if (!response.ok) {
-        console.error("Chat API error:", response.status, responseText);
-        addBotMessage(buildFallback(query));
+        addBotMessage(buildFallback(query), detectedLang);
         return;
       }
 
       let data: { reply?: string };
-      try {
-        data = JSON.parse(responseText);
-      } catch {
-        addBotMessage(buildFallback(query));
-        return;
-      }
+      try { data = JSON.parse(responseText); }
+      catch { addBotMessage(buildFallback(query), detectedLang); return; }
 
-      addBotMessage(data.reply || buildFallback(query));
+      addBotMessage(data.reply || buildFallback(query), detectedLang);
 
     } catch {
-      addBotMessage(buildFallback(query));
+      addBotMessage(buildFallback(query), detectedLang);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+  // â”€â”€ Start voice recognition â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const startListening = (lang: "hi-IN" | "en-IN" = "hi-IN") => {
+    if (!hasSpeechRecognition()) {
+      setMicError("Your browser doesn't support voice input. Try Chrome.");
+      return;
     }
+    setMicError("");
+    stopSpeaking(); // stop any ongoing speech
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+
+    recognition.continuous      = false;
+    recognition.interimResults  = true;
+    recognition.maxAlternatives = 1;
+    recognition.lang            = lang;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setTranscript("");
+    };
+
+    recognition.onresult = (event: any) => {
+      let interim = "";
+      let final   = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) final += t;
+        else interim += t;
+      }
+      setTranscript(final || interim);
+      if (final) {
+        setTranscript("");
+        setIsListening(false);
+        sendMessage(final, true);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      setIsListening(false);
+      setTranscript("");
+
+      if (event.error === "not-allowed") {
+        setMicError("Microphone permission denied. Click the ðŸ”’ icon in the address bar and allow mic.");
+      } else if (event.error === "no-speech") {
+        setMicError("No speech detected. Tap mic and speak clearly.");
+        setTimeout(() => setMicError(""), 3000);
+      } else if (event.error === "network") {
+        // Retry with en-IN if hi-IN failed with network error
+        if (lang === "hi-IN") {
+          setMicError("Retrying in English modeâ€¦");
+          setTimeout(() => {
+            setMicError("");
+            startListening("en-IN");
+          }, 800);
+        } else {
+          setMicError("Voice needs internet connection. Check your connection and try again.");
+          setTimeout(() => setMicError(""), 4000);
+        }
+      } else if (event.error === "aborted") {
+        // User stopped manually â€” no error needed
+        setMicError("");
+      } else {
+        setMicError(`Voice error: ${event.error}. Try again.`);
+        setTimeout(() => setMicError(""), 4000);
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      setTranscript("");
+    };
+
+    recognitionRef.current = recognition;
+
+    // Small delay before starting â€” prevents network errors on some Chrome versions
+    setTimeout(() => {
+      try {
+        recognition.start();
+      } catch (e) {
+        setMicError("Could not start mic. Try tapping again.");
+        setIsListening(false);
+        setTimeout(() => setMicError(""), 3000);
+      }
+    }, 100);
+  };
+
+  const stopListening = () => {
+    recognitionRef.current?.stop();
+    setIsListening(false);
+    setTranscript("");
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
   const clearChat = () => {
+    stopSpeaking();
     setMessages([{
       id: Date.now().toString(),
-      content: "Chat cleared! ðŸ”„ Ask me anything about waste management or any other topic.",
+      content: "Chat cleared! ðŸ”„ Ask me anything â€” or tap ðŸŽ¤ to speak!",
       sender: "bot",
       timestamp: new Date(),
     }]);
@@ -12787,7 +14105,7 @@ const WasteChatbot = () => {
   const quickQuestions = [
     "Where does plastic go?",
     "How do I earn points?",
-    "How to compost at home?",
+    "Yeh fridge kahan dispose karein?",
     "Which bin for batteries?",
   ];
 
@@ -12832,26 +14150,60 @@ const WasteChatbot = () => {
       className="fixed w-96 shadow-2xl z-50 flex flex-col overflow-hidden rounded-2xl border"
       style={{ top: chatboxPos.y, left: chatboxPos.x, height: CHATBOX_HEIGHT }}
     >
-      {/* Header */}
+      {/* â”€â”€ Header â”€â”€ */}
       <div className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-primary/10 to-accent/10 flex-shrink-0">
         <div className="flex items-center gap-2">
           <img src="/chatbot.png" alt="EcoBuddy" className="h-9 w-9 rounded-full" />
           <div>
             <p className="font-bold text-sm leading-tight">EcoBuddy</p>
-            <p className="text-xs text-muted-foreground leading-tight">AI Assistant Â· Ask anything</p>
+            <p className="text-xs text-muted-foreground leading-tight">
+              AI Assistant Â· {voiceMode ? "ðŸ”Š Voice On" : "Type or speak"}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1">
+          {/* Voice response toggle */}
+          <Button
+            variant={voiceMode ? "default" : "ghost"}
+            size="icon"
+            onClick={() => { setVoiceMode(v => !v); stopSpeaking(); }}
+            className={`h-7 w-7 ${voiceMode ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}
+            title={voiceMode ? "Voice responses ON â€” click to turn off" : "Turn on voice responses"}
+          >
+            {voiceMode ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5 text-muted-foreground" />}
+          </Button>
+          {/* Stop speaking */}
+          {isSpeaking && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={stopSpeaking}
+              className="h-7 w-7 text-red-500 hover:text-red-600"
+              title="Stop speaking"
+            >
+              <VolumeX className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <Button variant="ghost" size="icon" onClick={clearChat} className="h-7 w-7" title="Clear chat">
             <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-7 w-7">
+          <Button variant="ghost" size="icon" onClick={() => { setIsOpen(false); stopSpeaking(); stopListening(); }} className="h-7 w-7">
             <X className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {/* Messages */}
+      {/* â”€â”€ Voice mode banner â”€â”€ */}
+      {voiceMode && (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800 flex-shrink-0">
+          <Volume2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400 shrink-0" />
+          <p className="text-xs text-green-700 dark:text-green-300">
+            Voice responses on â€” EcoBuddy will speak answers aloud
+          </p>
+        </div>
+      )}
+
+      {/* â”€â”€ Messages â”€â”€ */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex gap-2 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
@@ -12863,18 +14215,55 @@ const WasteChatbot = () => {
                 ? "bg-primary text-primary-foreground rounded-tr-sm"
                 : "bg-muted text-foreground rounded-tl-sm"
             }`}>
+              {/* Voice/lang indicator */}
+              {msg.isVoice && msg.sender === "user" && (
+                <p className="text-[10px] text-primary-foreground/60 mb-0.5 flex items-center gap-1">
+                  <Mic className="h-2.5 w-2.5" /> Voice Â· {msg.lang ? langLabel(msg.lang) : ""}
+                </p>
+              )}
               <span dangerouslySetInnerHTML={renderContent(msg.content)} />
-              <p className={`text-xs mt-1 ${msg.sender === "user" ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </p>
+              <div className="flex items-center justify-between mt-1 gap-2">
+                <p className={`text-xs ${msg.sender === "user" ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                  {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </p>
+                {/* Re-speak button on bot messages */}
+                {msg.sender === "bot" && hasSpeechSynthesis() && (
+                  <button
+                    onClick={() => speakText(msg.content, (msg.lang as "hi-IN" | "en-IN") || "en-IN")}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    title="Speak this message"
+                  >
+                    <Volume2 className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
             </div>
             {msg.sender === "user" && (
               <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <User className="h-4 w-4 text-primary" />
+                {msg.isVoice
+                  ? <Mic className="h-4 w-4 text-primary" />
+                  : <User className="h-4 w-4 text-primary" />
+                }
               </div>
             )}
           </div>
         ))}
+
+        {/* â”€â”€ Live transcript while listening â”€â”€ */}
+        {isListening && (
+          <div className="flex gap-2 justify-end">
+            <div className="max-w-[78%] rounded-2xl rounded-tr-sm px-3 py-2 bg-primary/20 border border-primary/30 text-sm italic text-foreground/70">
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-xs text-muted-foreground">Listeningâ€¦</span>
+              </div>
+              {transcript || "Speak nowâ€¦"}
+            </div>
+            <div className="h-7 w-7 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Mic className="h-4 w-4 text-red-500" />
+            </div>
+          </div>
+        )}
 
         {isLoading && (
           <div className="flex gap-2 justify-start">
@@ -12892,7 +14281,14 @@ const WasteChatbot = () => {
         )}
       </div>
 
-      {/* Quick questions â€” only on first open */}
+      {/* â”€â”€ Mic error â”€â”€ */}
+      {micError && (
+        <div className="px-3 py-1.5 bg-red-50 dark:bg-red-900/20 border-t border-red-200 dark:border-red-800 flex-shrink-0">
+          <p className="text-xs text-red-600 dark:text-red-400">{micError}</p>
+        </div>
+      )}
+
+      {/* â”€â”€ Quick questions â€” only on first open â”€â”€ */}
       {messages.length === 1 && (
         <div className="px-3 pb-2 flex flex-wrap gap-1.5 flex-shrink-0">
           {quickQuestions.map((q) => (
@@ -12907,25 +14303,49 @@ const WasteChatbot = () => {
         </div>
       )}
 
-      {/* Input */}
+      {/* â”€â”€ Input row â”€â”€ */}
       <div className="p-3 border-t flex gap-2 items-center bg-background flex-shrink-0">
+
+        {/* Mic button */}
+        {hasSpeechRecognition() && (
+          <Button
+            variant={isListening ? "destructive" : "outline"}
+            size="icon"
+            className={`h-9 w-9 rounded-xl flex-shrink-0 transition-all ${
+              isListening ? "animate-pulse ring-2 ring-red-400" : ""
+            }`}
+            onClick={isListening ? stopListening : () => startListening()}
+            disabled={isLoading}
+            title={isListening ? "Stop recording" : "Speak in Hindi or English"}
+          >
+            {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </Button>
+        )}
+
         <Input
           value={inputMessage}
           onChange={e => setInputMessage(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder="Ask anything..."
+          placeholder={isListening ? "Listeningâ€¦" : "Ask anythingâ€¦"}
           className="flex-1 rounded-xl text-sm h-9"
-          disabled={isLoading}
+          disabled={isLoading || isListening}
         />
         <Button
-          onClick={sendMessage}
-          disabled={!inputMessage.trim() || isLoading}
+          onClick={() => sendMessage()}
+          disabled={!inputMessage.trim() || isLoading || isListening}
           size="icon"
           className="h-9 w-9 rounded-xl flex-shrink-0"
         >
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </div>
+
+      {/* â”€â”€ Voice hint (first time) â”€â”€ */}
+      {!hasSpeechRecognition() && (
+        <div className="px-3 pb-2 text-center flex-shrink-0">
+          <p className="text-xs text-muted-foreground">Voice input requires Chrome browser</p>
+        </div>
+      )}
     </Card>
   );
 };
@@ -16555,18 +17975,19 @@ export async function updateUserCoinsFirestore(uid: string, delta: number): Prom
   });
 }
 ========== C:\Users\jannat garg\OneDrive\Desktop\Projects folder\SwachhBuddy\Swachh-Buddy\src\pages\Dashboard\CDashboard.tsx ==========
-// src/pages/Dashboard/CDashboard.tsx
+// src/pages/Dashboard/CDashboard.tsx  â† UPDATED: tab state restore + rag picker stories fix
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card, CardContent, CardHeader, CardTitle, CardDescription,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   QrCode, Truck, Camera, Calendar,
   GraduationCap, Gamepad2, Users, BarChart3, Leaf, Bot,
-  Coins, Flame, Medal, TrendingUp, Wind,
+  Coins, Flame, Medal, TrendingUp, Wind, IdCard,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import RewardsSystem from "@/components/RewardsSystem";
@@ -16584,12 +18005,19 @@ import AIWasteClassifier from "@/components/AIWasteClassifier";
 import { LiveDashboardStats } from "@/components/LiveDashboardStats";
 import DashboardHeader from "@/components/DashboardHeader";
 import CarbonTracker from "@/components/CarbonTracker";
+// â”€â”€ NEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+import RagPickerIdentityWidget from "@/components/ragpicker/RagPickerIdentityWidget";
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const CDashboard = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const { user }  = useAuth();
   const { toast } = useToast();
   const { coins, earn, redeem } = usePoints();
+
+  // Restore last active tab when navigating back
+  const defaultTab = (location.state as any)?.activeTab || "overview";
 
   const [streak]          = useState<number>(7);
   const [weeklyGoal]      = useState<number>(500);
@@ -16631,14 +18059,14 @@ const CDashboard = () => {
 
       {/* â”€â”€ Tabs â”€â”€ */}
       <div className="container mx-auto p-3 md:p-5">
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="grid w-full grid-cols-5 gap-1 md:gap-2 rounded-2xl bg-muted/60 p-1.5 md:p-2 shadow-sm">
             {[
-              { value: "overview",    icon: <FiHome className="w-4 h-4 flex-shrink-0" />,                             label: "Overview" },
-              { value: "carbon",      icon: <Wind className="w-4 h-4 flex-shrink-0 text-green-600" />,                label: "Carbon" },
-              { value: "activities",  icon: <FiActivity className="w-4 h-4 flex-shrink-0" />,                         label: "Activities" },
-              { value: "learning",    icon: <FiBook className="w-4 h-4 flex-shrink-0" />,                             label: "Learning" },
-              { value: "leaderboard", icon: <FiAward className="w-4 h-4 flex-shrink-0" />,                            label: "Leaderboard" },
+              { value: "overview",    icon: <FiHome className="w-4 h-4 flex-shrink-0" />,    label: "Overview" },
+              { value: "carbon",      icon: <Wind className="w-4 h-4 flex-shrink-0 text-green-600" />, label: "Carbon" },
+              { value: "activities",  icon: <FiActivity className="w-4 h-4 flex-shrink-0" />, label: "Activities" },
+              { value: "learning",    icon: <FiBook className="w-4 h-4 flex-shrink-0" />,     label: "Learning" },
+              { value: "leaderboard", icon: <FiAward className="w-4 h-4 flex-shrink-0" />,   label: "Leaderboard" },
             ].map(tab => (
               <TabsTrigger key={tab.value} value={tab.value}
                 className="flex items-center justify-center gap-1 md:gap-2 rounded-xl py-2 px-1 md:px-3 text-xs md:text-sm font-medium transition-all
@@ -16651,77 +18079,55 @@ const CDashboard = () => {
 
           {/* â”€â”€ OVERVIEW â”€â”€ */}
           <TabsContent value="overview" className="space-y-4 md:space-y-6">
-            <div>
-              <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4">Quick Actions</h2>
-              <div className="flex space-x-3 md:space-x-6 overflow-x-auto py-2 pb-3 scrollbar-hide">
-                {[
-                  { icon: <QrCode className="h-6 w-6 md:h-7 md:w-7" />,   label: "Scan QR Code",    desc: "Verify disposal (+25 pts)",   onClick: () => setShowQRScanner(true) },
-                  { icon: <Bot className="h-6 w-6 md:h-7 md:w-7" />,      label: "AI Classifier",   desc: "Photo â†’ AI identifies waste", onClick: () => setShowAIClassifier(true) },
-                  { icon: <Truck className="h-6 w-6 md:h-7 md:w-7" />,    label: "Track Truck",     desc: "Locate vehicles",             onClick: () => navigate("/live-map") },
-                  { icon: <Camera className="h-6 w-6 md:h-7 md:w-7" />,   label: "Report Issue",    desc: "Missed pickup (+50 pts)",      onClick: () => setShowReporting(true) },
-                  { icon: <Calendar className="h-6 w-6 md:h-7 md:w-7" />, label: "Schedule Pickup", desc: "Book from home",              onClick: () => setShowSchedulePickup(true) },
-                  { icon: <Calendar className="h-6 w-6 md:h-7 md:w-7" />, label: "E-Waste Day",     desc: "Monthly drive (+75 pts)",     onClick: () => setShowEWasteDay(true) },
-                ].map((action, i) => (
-                  <Card key={i} className="cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all flex-shrink-0 w-36 md:w-64" onClick={action.onClick}>
-                    <CardContent className="p-3 md:p-6 flex flex-col items-center text-center space-y-2 md:space-y-3">
-                      <div className="p-2 md:p-3 rounded-full bg-primary/10 text-primary">{action.icon}</div>
-                      <h3 className="font-semibold text-xs md:text-base">{action.label}</h3>
-                      <p className="text-xs text-muted-foreground hidden md:block">{action.desc}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              <Card>
-                <CardHeader className="pb-2 md:pb-4">
-                  <CardTitle className="text-base md:text-lg">Points Legend</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="p-2 md:p-3 bg-muted/30 rounded-md text-xs md:text-sm">ðŸ“² QR Scan â€” +25 pts</div>
-                    <div className="p-2 md:p-3 bg-muted/30 rounded-md text-xs md:text-sm">ðŸŽ“ Training â€” +100 pts</div>
-                    <div className="p-2 md:p-3 bg-muted/30 rounded-md text-xs md:text-sm">ðŸ“· Report â€” +50 pts</div>
-                    <div className="p-2 md:p-3 bg-muted/30 rounded-md text-xs md:text-sm">â™»ï¸ E-Waste â€” +75 pts</div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2 md:pb-4">
-                  <CardTitle className="text-base md:text-lg">Weekly Progress</CardTitle>
-                  <CardDescription className="text-xs md:text-sm">
-                    You're {weeklyGoal - weeklyProgress} points away from your goal!
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-2 font-medium text-sm md:text-base">{weeklyProgress} / {weeklyGoal} pts</div>
-                  <div className="h-3 bg-muted/20 rounded overflow-hidden">
-                    <div style={{ width: `${Math.min(100, (weeklyProgress / weeklyGoal) * 100)}%` }} className="h-full bg-primary transition-all duration-500" />
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    You're at {Math.round((weeklyProgress / weeklyGoal) * 100)}% this week.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
 
             <LiveDashboardStats />
+
+            {/* â”€â”€ NEW: Rag Picker Identity Widget â”€â”€ */}
+            <div>
+              <h2 className="text-xl md:text-2xl font-bold mb-3 flex items-center gap-2">
+                <IdCard className="h-5 w-5 text-green-600" />
+                Support Waste Pickers
+                <Badge className="bg-green-100 text-green-700 border-green-300 text-xs ml-1">New</Badge>
+              </h2>
+              <RagPickerIdentityWidget />
+            </div>
+
+            {/* â”€â”€ Quick Actions â”€â”€ */}
+            <h2 className="text-xl md:text-2xl font-bold mb-3">Quick Actions</h2>
+            <div className="flex space-x-3 md:space-x-6 overflow-x-auto py-2 pb-3 scrollbar-hide">
+              {[
+                { icon: QrCode,    label: "Scan QR",         color: "bg-green-100 text-green-700",  onClick: () => setShowQRScanner(true) },
+                { icon: Camera,    label: "Report Issue",    color: "bg-red-100 text-red-700",      onClick: () => setShowReporting(true) },
+                { icon: Truck,     label: "Schedule Pickup", color: "bg-blue-100 text-blue-700",    onClick: () => setShowSchedulePickup(true) },
+                { icon: Calendar,  label: "E-Waste Day",     color: "bg-purple-100 text-purple-700",onClick: () => setShowEWasteDay(true) },
+                { icon: Bot,       label: "AI Classifier",   color: "bg-amber-100 text-amber-700",  onClick: () => setShowAIClassifier(true) },
+                { icon: Coins,     label: "Rewards",         color: "bg-yellow-100 text-yellow-700",onClick: () => setShowRewards(true) },
+              ].map(a => (
+                <div key={a.label} className="flex-shrink-0 flex flex-col items-center gap-1 cursor-pointer" onClick={a.onClick}>
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${a.color} shadow-sm hover:shadow-md transition-shadow`}>
+                    <a.icon className="h-6 w-6" />
+                  </div>
+                  <span className="text-xs text-center w-16 leading-tight">{a.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* â”€â”€ Weekly Progress â”€â”€ */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Weekly Goal Progress</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Progress value={(weeklyProgress / weeklyGoal) * 100} className="h-3" />
+                <p className="text-xs text-muted-foreground mt-2">
+                  {weeklyProgress} / {weeklyGoal} pts â€” {Math.round((weeklyProgress / weeklyGoal) * 100)}% complete
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
 
-          {/* â”€â”€ CARBON FOOTPRINT â”€â”€ */}
-          <TabsContent value="carbon" className="space-y-4">
-            <div className="flex items-center justify-between mb-1">
-              <div>
-                <h2 className="text-xl md:text-2xl font-bold">Carbon Footprint</h2>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Every correct disposal prevents real COâ‚‚ emissions. Track your climate impact here.
-                </p>
-              </div>
-              <Button variant="outline" size="sm" className="gap-2 flex-shrink-0" onClick={() => setShowAIClassifier(true)}>
-                <Bot className="h-4 w-4" /> Classify Waste
-              </Button>
-            </div>
+          {/* â”€â”€ CARBON â”€â”€ */}
+          <TabsContent value="carbon">
             <CarbonTracker />
           </TabsContent>
 
@@ -16731,113 +18137,51 @@ const CDashboard = () => {
           </TabsContent>
 
           {/* â”€â”€ LEARNING â”€â”€ */}
-          <TabsContent value="learning" className="space-y-4 md:space-y-6">
-            <div className="text-center mb-2 md:mb-4">
-              <h2 className="text-xl md:text-2xl font-semibold mb-2">Continue Learning</h2>
-              <p className="text-muted-foreground text-sm md:text-base">
-                Access comprehensive waste management education and interactive games
-              </p>
+          <TabsContent value="learning" className="space-y-4">
+            <h2 className="text-xl font-bold">Learning Hub</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { title: "Waste Basics",         href: "/learning/waste-basics",     icon: GraduationCap },
+                { title: "Community Leadership",  href: "/learning/community-basics", icon: Users },
+                { title: "Eco Sorter Game",      href: "/eco-sorter-game",            icon: Gamepad2 },
+                { title: "Rag Picker Stories",   href: "/ragpicker-stories",          icon: IdCard },
+              ].map(l => (
+                <Card key={l.title} className="hover:shadow-md transition-shadow">
+                  <CardContent className="pt-4 pb-4 flex items-center gap-3">
+                    <l.icon className="h-6 w-6 text-primary" />
+                    <p className="font-medium text-sm flex-1">{l.title}</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate(l.href, { state: { from: "/dashboard/corporate", activeTab: "learning" } })}
+                    >
+                      Go
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-
-            <Card className="border-primary/20 bg-primary/5">
-              <CardHeader className="pb-2 md:pb-4">
-                <CardTitle className="flex items-center gap-2 text-primary text-base md:text-lg">
-                  <Leaf className="h-5 w-5" /> Your Duties as a Citizen
-                </CardTitle>
-                <CardDescription>Key responsibilities to help keep India clean</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
-                  {[
-                    { icon: "ðŸŸ¢", duty: "Segregate waste at home â€” wet, dry, and hazardous bins" },
-                    { icon: "ðŸ“²", duty: "Scan QR code every time you hand over waste to the collector" },
-                    { icon: "ðŸ“·", duty: "Report missed pickups and illegal dumping with photos" },
-                    { icon: "â™»ï¸", duty: "Participate in monthly E-Waste collection drives" },
-                    { icon: "ðŸŒ±", duty: "Compost organic waste at home or in your colony" },
-                    { icon: "ðŸŽ“", duty: "Complete all 3 levels of waste management training" },
-                    { icon: "ðŸ“…", duty: "Schedule bulk pickups for furniture, e-waste, and construction debris" },
-                    { icon: "ðŸ“£", duty: "Spread awareness about waste segregation to neighbours and family" },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-start gap-2 md:gap-3 p-2 md:p-3 bg-white dark:bg-background rounded-lg border border-primary/10">
-                      <span className="text-lg md:text-xl flex-shrink-0">{item.icon}</span>
-                      <p className="text-xs md:text-sm text-foreground">{item.duty}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <CardTitle className="text-base md:text-lg flex items-center"><GraduationCap className="mr-2 h-5 w-5" /> Core Training</CardTitle>
-                  <CardDescription>Complete the 3-level mandatory training program</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm"><span>Progress</span><span>2/3 levels</span></div>
-                    <Progress value={67} className="h-2" />
-                    <Button asChild className="w-full"><Link to="/learning">Continue Training</Link></Button>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <CardTitle className="text-base md:text-lg flex items-center"><Gamepad2 className="mr-2 h-5 w-5" /> Learning Games</CardTitle>
-                  <CardDescription>Play interactive games to reinforce knowledge</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm"><span>Games Played</span><span>12</span></div>
-                    <div className="flex justify-between text-sm"><span>Points Earned</span><span>850 pts</span></div>
-                    <Button asChild variant="outline" className="w-full"><Link to="/play">Play Games</Link></Button>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <CardTitle className="text-base md:text-lg flex items-center"><Users className="mr-2 h-5 w-5" /> Specialized Courses</CardTitle>
-                  <CardDescription>Role-specific training for your user type</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button asChild variant="secondary" className="w-full"><Link to="/learning">Explore Courses</Link></Button>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center text-base md:text-lg"><BarChart3 className="mr-2 h-5 w-5" /> Learning Progress</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                  <div className="text-center"><div className="text-xl md:text-2xl font-bold text-primary">67%</div><div className="text-xs md:text-sm text-muted-foreground">Training Complete</div></div>
-                  <div className="text-center"><div className="text-xl md:text-2xl font-bold text-success">12</div><div className="text-xs md:text-sm text-muted-foreground">Games Played</div></div>
-                  <div className="text-center"><div className="text-xl md:text-2xl font-bold text-warning">5</div><div className="text-xs md:text-sm text-muted-foreground">Certificates</div></div>
-                  <div className="text-center"><div className="text-xl md:text-2xl font-bold text-accent">850</div><div className="text-xs md:text-sm text-muted-foreground">Learning Points</div></div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* â”€â”€ LEADERBOARD â”€â”€ */}
           <TabsContent value="leaderboard">
             <Card>
-              <CardHeader><CardTitle className="text-base md:text-lg">District Leaderboard</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" /> District Leaderboard
+                </CardTitle>
+              </CardHeader>
               <CardContent>
-                <div className="space-y-2 md:space-y-3">
-                  {leaderboardData.map((u, idx) => (
-                    <div key={idx} className={`flex items-center justify-between p-2 md:p-3 rounded ${u.isUser ? "bg-primary/10 border border-primary/20" : "bg-muted/30"}`}>
-                      <div className="flex items-center gap-2 md:gap-3">
-                        <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center font-bold text-xs md:text-sm flex-shrink-0
-                          ${u.rank === 1 ? "bg-yellow-400 text-yellow-900" : u.rank === 2 ? "bg-gray-300 text-gray-700" : u.rank === 3 ? "bg-orange-400 text-orange-900" : "bg-muted text-foreground"}`}>
-                          {u.rank === 1 ? "ðŸ¥‡" : u.rank === 2 ? "ðŸ¥ˆ" : u.rank === 3 ? "ðŸ¥‰" : u.rank}
-                        </div>
+                <div className="space-y-2">
+                  {leaderboardData.map(u => (
+                    <div key={u.rank} className={`flex items-center justify-between p-3 rounded-lg ${(u as any).isUser ? "bg-primary/10 border border-primary/20" : "bg-muted/30"}`}>
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-lg w-6 text-center">
+                          {u.rank === 1 ? "ðŸ¥‡" : u.rank === 2 ? "ðŸ¥ˆ" : u.rank === 3 ? "ðŸ¥‰" : `#${u.rank}`}
+                        </span>
                         <div>
-                          <div className="font-medium text-sm md:text-base">
-                            {u.name} {u.isUser && <span className="text-primary text-xs">(You)</span>}
-                          </div>
-                          <div className="text-xs text-muted-foreground">{u.district}</div>
+                          <p className="font-medium text-sm">{u.name} {(u as any).isUser ? "(You)" : ""}</p>
+                          <p className="text-xs text-muted-foreground">{u.district}</p>
                         </div>
                       </div>
                       <div className="font-bold text-primary text-sm md:text-base">{u.points} pts</div>
@@ -16885,9 +18229,9 @@ const CDashboard = () => {
 
 export default CDashboard;
 ========== C:\Users\jannat garg\OneDrive\Desktop\Projects folder\SwachhBuddy\Swachh-Buddy\src\pages\Dashboard\EDashboard.tsx ==========
-// src/pages/Dashboard/EDashboard.tsx
+// src/pages/Dashboard/EDashboard.tsx  â† UPDATED: tab state restore + learning nav fix
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16895,7 +18239,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   QrCode, Calendar, GraduationCap, Gamepad2, Users, BarChart3,
   CheckCircle, Clock, MapPin, Download, AlertTriangle,
-  ClipboardList, Truck, Package, Bot, Flame, Medal, TrendingUp, ScanLine,
+  ClipboardList, Truck, Package, Bot, Flame, Medal, TrendingUp, ScanLine, IdCard,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import RewardsSystem from "@/components/RewardsSystem";
@@ -16912,11 +18256,19 @@ import CitizenPickupRequests from "@/components/CitizenPickupRequests";
 import { EmployeeMapDashboard } from "@/components/EmployeeMapDashboard";
 import AIWasteClassifier from "@/components/AIWasteClassifier";
 import DashboardHeader from "@/components/DashboardHeader";
+// â”€â”€ NEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+import RagPickerIdentityWidget from "@/components/ragpicker/RagPickerIdentityWidget";
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const EDashboard: React.FC = () => {
   const { user, userData } = useAuth();
   const { toast }          = useToast();
+  const navigate           = useNavigate();
+  const location           = useLocation();
   const { coins, earn, redeem } = usePoints();
+
+  // Restore last active tab when navigating back
+  const defaultTab = (location.state as any)?.activeTab || "overview";
 
   const [streak, setStreak]             = useState<number>(7);
   const [weeklyGoal]                    = useState<number>(500);
@@ -16993,46 +18345,24 @@ const EDashboard: React.FC = () => {
         role="employee"
         levelBadge="Level 1"
         stats={[
-          {
-            value: coins,
-            label: "Points",
-            icon: <TrendingUp className="h-3.5 w-3.5 text-white" />,
-            highlight: true,
-          },
-          {
-            value: scansToday,
-            label: "Scans",
-            icon: <ScanLine className="h-3.5 w-3.5 text-white" />,
-          },
-          {
-            value: `ðŸ”¥ ${streak}`,
-            label: "Streak",
-            icon: <Flame className="h-3.5 w-3.5 text-white" />,
-          },
-          {
-            value: pendingCount,
-            label: "Pending",
-            icon: <Package className="h-3.5 w-3.5 text-white" />,
-          },
-          {
-            value: `${Math.round((weeklyProgress / weeklyGoal) * 100)}%`,
-            label: "Weekly Goal",
-            icon: <Medal className="h-3.5 w-3.5 text-white" />,
-          },
+          { value: coins, label: "Points", icon: <TrendingUp className="h-3.5 w-3.5 text-white" />, highlight: true },
+          { value: coins, label: "Coins",  icon: <TrendingUp className="h-3.5 w-3.5 text-white" /> },
+          { value: `ðŸ”¥ ${streak}`, label: "Streak", icon: <Flame className="h-3.5 w-3.5 text-white" /> },
+          { value: "#4", label: "District Rank", icon: <Medal className="h-3.5 w-3.5 text-white" /> },
+          { value: `${Math.round((weeklyProgress / weeklyGoal) * 100)}%`, label: "Weekly Goal", icon: <TrendingUp className="h-3.5 w-3.5 text-white" /> },
         ]}
       />
 
       {/* â”€â”€ Tabs â”€â”€ */}
       <div className="container mx-auto p-3 md:p-5">
-        <Tabs defaultValue="overview" className="w-full">
-
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="grid w-full grid-cols-5 gap-1 md:gap-2 rounded-2xl bg-muted/60 p-1.5 md:p-2 shadow-sm">
             {[
-              { value: "overview",    icon: <FiHome className="w-4 h-4 flex-shrink-0" />,    label: "Overview" },
-              { value: "map",         icon: <FiMap className="w-4 h-4 flex-shrink-0" />,      label: "Live Map" },
-              { value: "activities",  icon: <FiActivity className="w-4 h-4 flex-shrink-0" />, label: "Activities" },
-              { value: "learning",    icon: <FiBook className="w-4 h-4 flex-shrink-0" />,     label: "Learning" },
-              { value: "leaderboard", icon: <FiAward className="w-4 h-4 flex-shrink-0" />,    label: "Leaderboard" },
+              { value: "overview",   icon: <FiHome className="w-4 h-4" />,     label: "Overview" },
+              { value: "map",        icon: <FiMap className="w-4 h-4" />,      label: "Map" },
+              { value: "activities", icon: <FiActivity className="w-4 h-4" />, label: "Activities" },
+              { value: "learning",   icon: <FiBook className="w-4 h-4" />,     label: "Learning" },
+              { value: "leaderboard",icon: <FiAward className="w-4 h-4" />,    label: "Rankings" },
             ].map(tab => (
               <TabsTrigger key={tab.value} value={tab.value}
                 className="flex items-center justify-center gap-1 md:gap-2 rounded-xl py-2 px-1 md:px-3 text-xs md:text-sm font-medium transition-all
@@ -17045,231 +18375,205 @@ const EDashboard: React.FC = () => {
 
           {/* â”€â”€ OVERVIEW â”€â”€ */}
           <TabsContent value="overview" className="space-y-4 md:space-y-6">
+
+            {/* â”€â”€ NEW: Rag Picker Identity Widget â”€â”€ */}
             <div>
-              <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4">Quick Actions</h2>
-              <div className="flex space-x-3 md:space-x-4 overflow-x-auto py-2 pb-3">
-                {[
-                  { icon: <QrCode className="h-6 w-6 md:h-7 md:w-7" />,   label: "Generate QR",     desc: isGeneratingQR ? "Generatingâ€¦" : "Citizens scan to verify", onClick: handleGenerateQR,                              badge: null },
-                  { icon: <Package className="h-6 w-6 md:h-7 md:w-7" />, label: "Citizen Pickups", desc: `${pendingCount} pending requests`,                          onClick: () => setShowCitizenPickupRequests(true),       badge: pendingCount > 0 ? pendingCount : null },
-                  { icon: <Truck className="h-6 w-6 md:h-7 md:w-7" />,   label: "Track Waste",     desc: "Live vehicles & map",                                        onClick: () => setShowWasteTracking(true),               badge: null },
-                  { icon: <Bot className="h-6 w-6 md:h-7 md:w-7" />,     label: "AI Classifier",   desc: "Photo â†’ AI identifies waste",                               onClick: () => setShowAIClassifier(true),                badge: null },
-                  { icon: <Calendar className="h-6 w-6 md:h-7 md:w-7" />,label: "E-Waste Day",     desc: "Monthly drive",                                              onClick: () => setShowEWasteDay(true),                   badge: null },
-                ].map((action, i) => (
-                  <Card key={i} className="cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all flex-shrink-0 w-36 md:w-64 relative" onClick={action.onClick}>
-                    {action.badge && (
-                      <div className="absolute -top-1.5 -right-1.5 z-10 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow">
-                        {action.badge}
+              <h2 className="text-lg md:text-xl font-bold mb-3 flex items-center gap-2">
+                <IdCard className="h-5 w-5 text-green-600" />
+                Rag Picker Digital Identity
+                <Badge className="bg-green-100 text-green-700 border-green-300 text-xs ml-1">New</Badge>
+              </h2>
+              <RagPickerIdentityWidget verifyingEmployeeId={user?.uid} />
+            </div>
+
+            {/* â”€â”€ QR Code Section â”€â”€ */}
+            <div>
+              <h2 className="text-xl md:text-2xl font-bold mb-3">Your QR Code</h2>
+              <Card>
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex flex-col md:flex-row items-center gap-4">
+                    <div className="text-center">
+                      {generatedQR ? (
+                        <img src={generatedQR} alt="Employee QR" className="w-32 h-32 border-2 border-primary rounded-lg mx-auto" />
+                      ) : (
+                        <div className="w-32 h-32 border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center mx-auto">
+                          <QrCode className="h-10 w-10 text-muted-foreground/40" />
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">Employee QR</p>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        Scans today: <strong>{scansToday}</strong> | Each scan = +25 pts for citizen
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button size="sm" onClick={handleGenerateQR} disabled={isGeneratingQR}>
+                          <QrCode className="h-3.5 w-3.5 mr-1" />
+                          {isGeneratingQR ? "Generatingâ€¦" : generatedQR ? "Regenerate" : "Generate QR"}
+                        </Button>
+                        {generatedQR && (
+                          <Button size="sm" variant="outline" onClick={handleDownloadQR}>
+                            <Download className="h-3.5 w-3.5 mr-1" /> Download
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" onClick={handleCitizenScanned}>
+                          <ScanLine className="h-3.5 w-3.5 mr-1" /> Simulate Scan
+                        </Button>
                       </div>
-                    )}
-                    <CardContent className="p-3 md:p-6 flex flex-col items-center text-center space-y-2 md:space-y-3">
-                      <div className="p-2 md:p-3 rounded-full bg-primary/10 text-primary">{action.icon}</div>
-                      <h3 className="font-semibold text-xs md:text-base">{action.label}</h3>
-                      <p className="text-xs text-muted-foreground hidden md:block">{action.desc}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* â”€â”€ Quick Actions â”€â”€ */}
+            <div>
+              <h2 className="text-xl md:text-2xl font-bold mb-3">Quick Actions</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {[
+                  { icon: ClipboardList, label: "Pickup Requests",   badge: pendingCount > 0 ? String(pendingCount) : undefined, color: "text-blue-600",  onClick: () => setShowCitizenPickupRequests(true) },
+                  { icon: Truck,        label: "Schedule Pickup",    color: "text-green-600", onClick: () => setShowSchedulePickup(true) },
+                  { icon: Package,      label: "Track Waste",        color: "text-amber-600", onClick: () => setShowWasteTracking(true) },
+                  { icon: Calendar,     label: "E-Waste Day",        color: "text-violet-600",onClick: () => setShowEWasteDay(true) },
+                  { icon: Bot,          label: "AI Classifier",      color: "text-rose-600",  onClick: () => setShowAIClassifier(true) },
+                  { icon: BarChart3,    label: "View Leaderboard",   color: "text-indigo-600",onClick: () => {} },
+                ].map(a => (
+                  <Card
+                    key={a.label}
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={a.onClick}
+                  >
+                    <CardContent className="pt-4 pb-4 flex items-center gap-3">
+                      <a.icon className={`h-6 w-6 ${a.color} shrink-0`} />
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{a.label}</span>
+                        {a.badge && (
+                          <Badge variant="destructive" className="text-xs h-5">{a.badge}</Badge>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
               </div>
             </div>
 
-            {generatedQR && (
-              <Card className="border-primary/30 bg-green-50/50 dark:bg-green-950/20">
-                <CardHeader className="pb-2 md:pb-4">
-                  <CardTitle className="flex items-center gap-2 text-primary text-base md:text-lg">
-                    <QrCode className="h-5 w-5" /> Your Active Verification QR
-                  </CardTitle>
-                  <CardDescription className="text-xs md:text-sm">
-                    Citizens scan â†’ they get <strong>+25 pts</strong> â†’ your garbage streak increases!
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6">
-                    <img src={generatedQR} alt="QR Code" className="w-36 h-36 md:w-44 md:h-44 rounded-xl border-2 border-primary/20 shadow-md flex-shrink-0" />
-                    <div className="space-y-3 w-full">
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="p-2 md:p-3 bg-white dark:bg-background rounded-lg border"><p className="text-muted-foreground text-xs">Employee</p><p className="font-semibold text-xs md:text-sm truncate">{user?.displayName || "â€”"}</p></div>
-                        <div className="p-2 md:p-3 bg-white dark:bg-background rounded-lg border"><p className="text-muted-foreground text-xs">Employee ID</p><p className="font-semibold text-xs md:text-sm">{userData?.employeeId || user?.uid?.slice(0, 8)}</p></div>
-                        <div className="p-2 md:p-3 bg-white dark:bg-background rounded-lg border"><p className="text-muted-foreground text-xs">Scans Today</p><p className="font-semibold text-primary">{scansToday}</p></div>
-                        <div className="p-2 md:p-3 bg-white dark:bg-background rounded-lg border"><p className="text-muted-foreground text-xs">Streak</p><p className="font-semibold text-orange-500">ðŸ”¥ {streak} days</p></div>
-                      </div>
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <Button onClick={handleDownloadQR} variant="outline" size="sm" className="flex items-center gap-2 flex-1"><Download className="h-4 w-4" /> Download</Button>
-                        <Button onClick={handleCitizenScanned} size="sm" className="flex items-center gap-2 flex-1"><CheckCircle className="h-4 w-4" /> Simulate Scan</Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">ðŸ’¡ "Simulate Scan" is for demo â€” in production, citizens scan via the app.</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
+            {/* â”€â”€ Pickup Requests â”€â”€ */}
             <Card>
-              <CardHeader className="pb-2 md:pb-4">
-                <CardTitle className="flex items-center gap-2 text-base md:text-lg flex-wrap">
-                  <ClipboardList className="h-5 w-5 text-primary flex-shrink-0" />
-                  Citizen Pickup Requests
-                  <Badge variant="destructive" className="ml-1">{pendingCount} Pending</Badge>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4" /> Today's Pickup Requests
+                  {pendingCount > 0 && <Badge variant="destructive">{pendingCount} pending</Badge>}
                 </CardTitle>
-                <CardDescription className="text-xs md:text-sm">Requests from citizens in your zone</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {pickupRequests.map((req) => (
-                    <div key={req.id} className={`p-3 md:p-4 rounded-lg border ${req.status === "completed" ? "bg-green-50 border-green-200 dark:bg-green-950/20" : "bg-orange-50 border-orange-200 dark:bg-orange-950/20"}`}>
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex items-start gap-2 flex-1 min-w-0">
-                          <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                          <div className="min-w-0">
-                            <div className="font-medium text-sm">{req.citizen}</div>
-                            <div className="text-xs text-muted-foreground truncate">{req.address}</div>
-                          </div>
+                <div className="space-y-2">
+                  {pickupRequests.map(req => (
+                    <div key={req.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg gap-2">
+                      <div className="flex items-start gap-2 flex-1 min-w-0">
+                        <div className={`mt-0.5 shrink-0 ${req.status === "completed" ? "text-green-600" : "text-amber-500"}`}>
+                          {req.status === "completed" ? <CheckCircle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
                         </div>
-                        <span className={`text-xs font-semibold capitalize px-2 py-0.5 rounded-full flex-shrink-0 ${req.status === "completed" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>{req.status}</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="outline" className="text-xs">{req.type}</Badge>
-                          <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> {req.scheduledTime}</span>
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{req.citizen}</p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{req.address}</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground">{req.scheduledTime} Â· {req.type}</p>
                         </div>
-                        {req.status === "pending" && (
-                          <Button size="sm" className="text-xs h-7 flex-shrink-0" onClick={() => handleCompletePickup(req.id)}>
-                            <CheckCircle className="h-3 w-3 mr-1" />Mark Done (+30 pts)
-                          </Button>
-                        )}
                       </div>
+                      {req.status === "pending" && (
+                        <Button
+                          size="sm"
+                          className="shrink-0 text-xs h-7"
+                          onClick={() => handleCompletePickup(req.id)}
+                        >
+                          Complete
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
-                <Button variant="outline" className="w-full mt-3 text-sm" onClick={() => setShowCitizenPickupRequests(true)}>
-                  View All Requests â†’
-                </Button>
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-base md:text-lg">Points Legend</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="p-2 md:p-3 bg-muted/30 rounded-md text-xs md:text-sm">ðŸ“² QR Scan â€” +10 pts</div>
-                    <div className="p-2 md:p-3 bg-muted/30 rounded-md text-xs md:text-sm">ðŸ“¦ Pickup â€” +30 pts</div>
-                    <div className="p-2 md:p-3 bg-muted/30 rounded-md text-xs md:text-sm">ðŸŽ“ Training â€” +100 pts</div>
-                    <div className="p-2 md:p-3 bg-muted/30 rounded-md text-xs md:text-sm">â™»ï¸ E-Waste â€” +75 pts</div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base md:text-lg">Weekly Progress</CardTitle>
-                  <CardDescription className="text-xs md:text-sm">{weeklyGoal - weeklyProgress} pts away from goal!</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-2 font-medium text-sm">{weeklyProgress} / {weeklyGoal} pts</div>
-                  <div className="h-3 bg-muted/20 rounded overflow-hidden">
-                    <div style={{ width: `${Math.min(100, (weeklyProgress / weeklyGoal) * 100)}%` }} className="h-full bg-primary transition-all duration-500" />
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">{Math.round((weeklyProgress / weeklyGoal) * 100)}% complete this week ðŸ’ª</p>
-                </CardContent>
-              </Card>
-            </div>
-
+            {/* â”€â”€ Weekly progress â”€â”€ */}
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-base md:text-lg">Recent Achievements</CardTitle></CardHeader>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Weekly Goal Progress</CardTitle>
+              </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
-                  <div className="p-2 md:p-3 bg-success/10 rounded border border-success/20 text-xs md:text-sm">âœ… Joined as Municipal Employee (+10 pts)</div>
-                  <div className="p-2 md:p-3 bg-success/10 rounded border border-success/20 text-xs md:text-sm">âœ… First QR Generated (+10 pts)</div>
-                  <div className="p-2 md:p-3 bg-success/10 rounded border border-success/20 text-xs md:text-sm">âœ… 3 Pickups Completed this week (+90 pts)</div>
-                  <div className="p-2 md:p-3 bg-success/10 rounded border border-success/20 text-xs md:text-sm">âœ… 7-Day Garbage Streak ðŸ”¥</div>
-                </div>
+                <Progress value={(weeklyProgress / weeklyGoal) * 100} className="h-3" />
+                <p className="text-xs text-muted-foreground mt-2">
+                  {weeklyProgress} / {weeklyGoal} pts â€” {Math.round((weeklyProgress / weeklyGoal) * 100)}% complete
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* â”€â”€ LIVE MAP â”€â”€ */}
-          <TabsContent value="map" className="mt-0 p-0">
-            <div className="rounded-xl overflow-hidden border shadow-sm" style={{ height: "calc(100vh - 280px)", minHeight: 520 }}>
-              <EmployeeMapDashboard />
-            </div>
+          {/* â”€â”€ MAP â”€â”€ */}
+          <TabsContent value="map">
+            <EmployeeMapDashboard />
           </TabsContent>
 
           {/* â”€â”€ ACTIVITIES â”€â”€ */}
-          <TabsContent value="activities"><Activities /></TabsContent>
+          <TabsContent value="activities">
+            <Activities />
+          </TabsContent>
 
           {/* â”€â”€ LEARNING â”€â”€ */}
-          <TabsContent value="learning" className="space-y-4 md:space-y-6">
-            <div className="text-center mb-4 md:mb-6">
-              <h2 className="text-xl md:text-2xl font-semibold mb-2">Employee Training Hub</h2>
-              <p className="text-muted-foreground text-sm md:text-base">Complete training and learn your duties</p>
-            </div>
-            <Card className="border-primary/20 bg-primary/5">
-              <CardHeader className="pb-2 md:pb-4">
-                <CardTitle className="flex items-center gap-2 text-primary text-base md:text-lg">
-                  <AlertTriangle className="h-5 w-5" /> Your Duties as Municipal Employee
-                </CardTitle>
-                <CardDescription>Key responsibilities to fulfil daily</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
-                  {[
-                    { icon: "ðŸ“²", duty: "Generate QR Code daily for citizen verification" },
-                    { icon: "ðŸš›", duty: "Ensure timely waste collection in your zone" },
-                    { icon: "ðŸ“‹", duty: "Review and complete citizen pickup requests" },
-                    { icon: "â™»ï¸", duty: "Conduct weekly E-Waste collection drives" },
-                    { icon: "ðŸ“Š", duty: "Submit daily waste collection reports" },
-                    { icon: "ðŸŽ“", duty: "Complete all mandatory training modules" },
-                    { icon: "ðŸ—ºï¸", duty: "Track and update waste truck locations" },
-                    { icon: "ðŸ“£", duty: "Educate citizens on proper waste segregation" },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-start gap-2 md:gap-3 p-2 md:p-3 bg-white dark:bg-background rounded-lg border border-primary/10">
-                      <span className="text-lg md:text-xl flex-shrink-0">{item.icon}</span>
-                      <p className="text-xs md:text-sm text-foreground">{item.duty}</p>
+          <TabsContent value="learning" className="space-y-4">
+            <h2 className="text-xl font-bold">Learning & Training</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { title: "Waste Management Basics", href: "/learning/waste-basics",        icon: GraduationCap, desc: "Core SWM knowledge" },
+                { title: "Rag Picker Support",       href: "/learning/ragpicker-basics",    icon: Users,         desc: "Understand waste picker needs" },
+                { title: "Eco Sorter Game",          href: "/eco-sorter-game",              icon: Gamepad2,      desc: "Fun learning through play" },
+                { title: "Digital Identity Guide",   href: "/ragpicker-identity",           icon: IdCard,        desc: "Register & manage rag picker IDs" },
+              ].map(l => (
+                <Card key={l.title} className="hover:shadow-md transition-shadow">
+                  <CardContent className="pt-4 pb-4">
+                    <div className="flex items-center gap-3">
+                      <l.icon className="h-7 w-7 text-primary" />
+                      <div>
+                        <p className="font-semibold text-sm">{l.title}</p>
+                        <p className="text-xs text-muted-foreground">{l.desc}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="ml-auto"
+                        onClick={() => navigate(l.href, { state: { from: "/dashboard/enduser", activeTab: "learning" } })}
+                      >
+                        Go
+                      </Button>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-            <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader><CardTitle className="text-base md:text-lg flex items-center"><GraduationCap className="mr-2 h-5 w-5" /> Core Training</CardTitle><CardDescription>Complete the mandatory training program</CardDescription></CardHeader>
-                <CardContent><div className="space-y-3"><div className="flex justify-between text-sm"><span>Progress</span><span>2/3 levels</span></div><Progress value={67} className="h-2" /><Button asChild className="w-full"><Link to="/learning">Continue Training</Link></Button></div></CardContent>
-              </Card>
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader><CardTitle className="text-base md:text-lg flex items-center"><Gamepad2 className="mr-2 h-5 w-5" /> Learning Games</CardTitle><CardDescription>Play games to reinforce knowledge</CardDescription></CardHeader>
-                <CardContent><div className="space-y-3"><div className="flex justify-between text-sm"><span>Games Played</span><span>12</span></div><div className="flex justify-between text-sm"><span>Points Earned</span><span>850 pts</span></div><Button asChild variant="outline" className="w-full"><Link to="/play">Play Games</Link></Button></div></CardContent>
-              </Card>
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader><CardTitle className="text-base md:text-lg flex items-center"><Users className="mr-2 h-5 w-5" /> Employee Courses</CardTitle><CardDescription>Role-specific training modules</CardDescription></CardHeader>
-                <CardContent><Button asChild variant="secondary" className="w-full"><Link to="/learning">Explore Courses</Link></Button></CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-            <Card>
-              <CardHeader><CardTitle className="flex items-center text-base md:text-lg"><BarChart3 className="mr-2 h-5 w-5" /> Learning Progress</CardTitle></CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                  <div className="text-center"><div className="text-xl md:text-2xl font-bold text-primary">67%</div><div className="text-xs md:text-sm text-muted-foreground">Training</div></div>
-                  <div className="text-center"><div className="text-xl md:text-2xl font-bold text-success">12</div><div className="text-xs md:text-sm text-muted-foreground">Games</div></div>
-                  <div className="text-center"><div className="text-xl md:text-2xl font-bold text-warning">5</div><div className="text-xs md:text-sm text-muted-foreground">Certificates</div></div>
-                  <div className="text-center"><div className="text-xl md:text-2xl font-bold text-accent">850</div><div className="text-xs md:text-sm text-muted-foreground">Pts Earned</div></div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* â”€â”€ LEADERBOARD â”€â”€ */}
           <TabsContent value="leaderboard">
             <Card>
-              <CardHeader><CardTitle className="text-base md:text-lg">District Leaderboard</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" /> District Leaderboard
+                </CardTitle>
+                <CardDescription>Top performers this month</CardDescription>
+              </CardHeader>
               <CardContent>
-                <div className="space-y-2 md:space-y-3">
-                  {leaderboardData.map((u, idx) => (
-                    <div key={idx} className={`flex items-center justify-between p-2 md:p-3 rounded ${u.isUser ? "bg-primary/10 border border-primary/20" : "bg-muted/30"}`}>
-                      <div className="flex items-center gap-2 md:gap-3">
-                        <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${u.rank === 1 ? "bg-yellow-400 text-yellow-900" : u.rank === 2 ? "bg-gray-300 text-gray-700" : u.rank === 3 ? "bg-orange-400 text-orange-900" : "bg-muted text-foreground"}`}>
-                          {u.rank === 1 ? "ðŸ¥‡" : u.rank === 2 ? "ðŸ¥ˆ" : u.rank === 3 ? "ðŸ¥‰" : u.rank}
-                        </div>
+                <div className="space-y-2">
+                  {leaderboardData.map(u => (
+                    <div key={u.rank} className={`flex items-center justify-between p-3 rounded-lg ${(u as any).isUser ? "bg-primary/10 border border-primary/20" : "bg-muted/30"}`}>
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-lg w-6 text-center">
+                          {u.rank === 1 ? "ðŸ¥‡" : u.rank === 2 ? "ðŸ¥ˆ" : u.rank === 3 ? "ðŸ¥‰" : `#${u.rank}`}
+                        </span>
                         <div>
-                          <div className="font-medium text-sm">{u.name} {u.isUser && <span className="text-primary text-xs">(You)</span>}</div>
-                          <div className="text-xs text-muted-foreground">{u.district}</div>
+                          <p className="font-medium text-sm">{u.name} {(u as any).isUser ? "(You)" : ""}</p>
+                          <p className="text-xs text-muted-foreground">{u.district}</p>
                         </div>
                       </div>
                       <div className="font-bold text-primary text-sm">{u.points} pts</div>
@@ -17286,8 +18590,8 @@ const EDashboard: React.FC = () => {
       <WasteTracking isOpen={showWasteTracking} onClose={() => setShowWasteTracking(false)} />
       <SchedulePickup isOpen={showSchedulePickup} onClose={() => setShowSchedulePickup(false)} />
       <EWasteDay isOpen={showEWasteDay} onClose={() => setShowEWasteDay(false)} />
-      <CitizenPickupRequests isOpen={showCitizenPickupRequests} onClose={() => setShowCitizenPickupRequests(false)} />
       <AIWasteClassifier isOpen={showAIClassifier} onClose={() => setShowAIClassifier(false)} />
+      <CitizenPickupRequests isOpen={showCitizenPickupRequests} onClose={() => setShowCitizenPickupRequests(false)} />
       <WasteChatbot />
 
       {showRewards && (
@@ -18995,8 +20299,8 @@ const Landing = ({ onUserTypeSelect }: LandingProps) => {
         <p className="text-green-200 text-xs md:text-sm px-4">
           Built with â¤ï¸ by Team{" "}
           <span className="font-bold text-white">NeuroX</span> for{" "}
-          <span className="font-bold text-white">HACKXTRACT 2026</span>{" "}
-          | Problem ID: Sustainable Development
+          <span className="font-bold text-white">Sustainable Development</span>{" "}
+          
         </p>
       </section>
     </div>
@@ -19540,6 +20844,588 @@ const Play = () => {
 };
 
 export default Play;
+========== C:\Users\jannat garg\OneDrive\Desktop\Projects folder\SwachhBuddy\Swachh-Buddy\src\pages\RagPickerIdentityDashboard.tsx ==========
+// src/pages/RagPickerIdentityDashboard.tsx
+import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import {
+  UserPlus, Package, FileText, History, Search,
+  ArrowLeft, ShieldCheck, TrendingUp, Users, Star, IdCard,
+} from "lucide-react";
+import { RagPickerProfile, getRagPickerById, findRagPickerByPhone } from "@/services/ragpickerIdentity";
+import { DigitalIDCardWithActions } from "@/components/ragpicker/DigitalIDCard";
+import RagPickerRegistration from "@/components/ragpicker/RagPickerRegistration";
+import LogCollectionModal from "@/components/ragpicker/LogCollectionModal";
+import IncomeCertificate from "@/components/ragpicker/IncomeCertificate";
+import CollectionHistory from "@/components/ragpicker/CollectionHistory";
+import { useAuth } from "@/hooks/use-auth";
+
+const IMPACT_STATS = [
+  { value: "4M+",   label: "Waste Pickers in India",       icon: "ðŸ‘·", color: "text-blue-500 dark:text-blue-400" },
+  { value: "0",     label: "Had Formal Identity Before",    icon: "ðŸ“‹", color: "text-red-500 dark:text-red-400" },
+  { value: "â‚¹0",    label: "Access to Formal Credit",       icon: "ðŸ¦", color: "text-amber-500 dark:text-amber-400" },
+  { value: "Today", label: "That Changes With SwachhBuddy", icon: "ðŸŒŸ", color: "text-green-600 dark:text-green-400" },
+];
+
+const HOW_IT_WORKS = [
+  { step: "1", title: "Register",         desc: "Municipal employee registers the waste picker with name, phone, zone",   icon: UserPlus, iconColor: "text-blue-600 dark:text-blue-300",   bg: "bg-blue-100 dark:bg-blue-900/50" },
+  { step: "2", title: "Collect & Log",    desc: "Each day's pickup is logged â€” kg, material, location, timestamp",        icon: Package,  iconColor: "text-amber-600 dark:text-amber-300",  bg: "bg-amber-100 dark:bg-amber-900/50" },
+  { step: "3", title: "Score builds",     desc: "Swachh Score accumulates with every verified collection",                icon: Star,     iconColor: "text-violet-600 dark:text-violet-300", bg: "bg-violet-100 dark:bg-violet-900/50" },
+  { step: "4", title: "Get Certificate",  desc: "Monthly verified income certificate â€” accepted by banks & MFIs",         icon: FileText, iconColor: "text-emerald-600 dark:text-emerald-300",bg: "bg-emerald-100 dark:bg-emerald-900/50" },
+];
+
+const RagPickerIdentityDashboard: React.FC = () => {
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const { user }  = useAuth();
+  const { toast } = useToast();
+
+  // Smart back: if came from a dashboard tab, go back to it with tab state
+  const handleBack = () => {
+    const state = location.state as any;
+    if (state?.from) {
+      navigate(state.from, { state: { activeTab: state.activeTab || "learning" } });
+    } else {
+      navigate(-1);
+    }
+  };
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [activeProfile, setActiveProfile] = useState<RagPickerProfile | null>(null);
+
+  const [showRegister, setShowRegister]   = useState(false);
+  const [showLogModal, setShowLogModal]   = useState(false);
+  const [showCertificate, setShowCertificate] = useState(false);
+  const [showHistory, setShowHistory]     = useState(false);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setSearchLoading(true);
+    try {
+      let profile: RagPickerProfile | null = null;
+      if (searchQuery.startsWith("SB-RP-")) {
+        profile = await getRagPickerById(searchQuery.trim());
+      } else {
+        profile = await findRagPickerByPhone(searchQuery.trim());
+      }
+      if (profile) {
+        setActiveProfile(profile);
+        toast({ title: `Found: ${profile.name}`, description: profile.id });
+      } else {
+        toast({
+          title: "No profile found",
+          description: "No waste picker registered with this ID or number. Click 'Register New' to add them.",
+        });
+      }
+    } catch (err: any) {
+      // If it's a Firestore rules / missing collection error, show friendly message
+      if (err?.code === "permission-denied") {
+        toast({
+          title: "Firestore rules not configured",
+          description: "Add the ragpickers collection rules in Firebase console. See README for instructions.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Search failed", description: err?.message || "Unknown error", variant: "destructive" });
+      }
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+
+      {/* â”€â”€ Header â”€â”€ */}
+      <div className="bg-gradient-to-r from-green-800 to-emerald-700 text-white px-4 py-6">
+        <div className="max-w-4xl mx-auto">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-white hover:bg-white/20 mb-4"
+            onClick={handleBack}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back
+          </Button>
+
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <IdCard className="h-6 w-6 text-green-200" />
+                <h1 className="text-2xl md:text-3xl font-bold">Rag Picker Digital Identity</h1>
+              </div>
+              <p className="text-green-200 text-sm max-w-xl">
+                Making India's 4 million waste pickers visible to the formal economy â€” 
+                verified income records, digital IDs, and access to banks, insurance & credit.
+              </p>
+            </div>
+            <Badge className="bg-white/20 text-white border-white/30 text-sm py-1 px-3 self-start">
+              <ShieldCheck className="h-3.5 w-3.5 mr-1" /> SwachhBuddy Verified
+            </Badge>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+        {/* â”€â”€ Impact banner â”€â”€ */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {IMPACT_STATS.map(s => (
+            <Card key={s.label} className="text-center border-0 shadow-sm">
+              <CardContent className="pt-4 pb-3">
+                <div className="text-2xl mb-1">{s.icon}</div>
+                <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
+                <div className="text-xs text-muted-foreground leading-tight">{s.label}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* â”€â”€ Search + Quick Actions â”€â”€ */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Find or Register a Waste Picker</CardTitle>
+            <CardDescription>Search by Picker ID (SB-RP-â€¦) or mobile number</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="SB-RP-ABC123 or 9876543210"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSearch()}
+              />
+              <Button
+                variant="outline"
+                onClick={handleSearch}
+                disabled={searchLoading || !searchQuery.trim()}
+                className="shrink-0"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {[
+                { label: "Register New", icon: UserPlus, color: "bg-blue-600 hover:bg-blue-700", onClick: () => setShowRegister(true) },
+                { label: "Log Collection", icon: Package, color: "bg-amber-600 hover:bg-amber-700", onClick: () => { if (!activeProfile) { toast({ title: "Search for a picker first" }); return; } setShowLogModal(true); } },
+                { label: "Income Cert", icon: FileText, color: "bg-emerald-600 hover:bg-emerald-700", onClick: () => { if (!activeProfile) { toast({ title: "Search for a picker first" }); return; } setShowCertificate(true); } },
+                { label: "History", icon: History, color: "bg-violet-600 hover:bg-violet-700", onClick: () => { if (!activeProfile) { toast({ title: "Search for a picker first" }); return; } setShowHistory(true); } },
+              ].map(a => (
+                <Button
+                  key={a.label}
+                  className={`${a.color} text-white flex items-center gap-2 justify-start px-3 h-auto py-2.5`}
+                  onClick={a.onClick}
+                >
+                  <a.icon className="h-4 w-4 shrink-0" />
+                  <span className="text-xs font-medium">{a.label}</span>
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* â”€â”€ Active Profile card â”€â”€ */}
+        {activeProfile && (
+          <div>
+            <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" /> Active Profile
+            </h2>
+            <div className="flex flex-col md:flex-row gap-4 items-start">
+              {/* Digital ID Card */}
+              <div className="w-full md:w-72 shrink-0">
+                <DigitalIDCardWithActions profile={activeProfile} />
+              </div>
+
+              {/* Stats */}
+              <div className="flex-1 grid grid-cols-2 gap-3">
+                {[
+                  { label: "Total Collected", value: `${activeProfile.totalKgCollected.toFixed(1)} kg`, icon: "âš–ï¸" },
+                  { label: "Verified Earnings", value: `â‚¹${activeProfile.totalEarningsRs.toFixed(0)}`, icon: "ðŸ’°" },
+                  { label: "Swachh Score", value: activeProfile.swachhScore.toString(), icon: "â­" },
+                  { label: "Bank Linked", value: activeProfile.bankLinked ? "Yes âœ…" : "Not yet", icon: "ðŸ¦" },
+                  { label: "Insurance", value: activeProfile.insuranceLinked ? "Active âœ…" : "Not yet", icon: "ðŸ›¡ï¸" },
+                  { label: "Verification", value: activeProfile.isVerified ? "Verified âœ…" : "Pending", icon: "ðŸ”’" },
+                ].map(s => (
+                  <Card key={s.label} className="border-0 shadow-sm">
+                    <CardContent className="pt-3 pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{s.icon}</span>
+                        <div>
+                          <p className="text-xs text-muted-foreground">{s.label}</p>
+                          <p className="font-semibold text-sm">{s.value}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* â”€â”€ How it works â”€â”€ */}
+        <div>
+          <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
+            <Users className="h-5 w-5 text-green-600 dark:text-green-400" /> How It Works
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {HOW_IT_WORKS.map(h => (
+              <Card key={h.step} className="shadow-sm">
+                <CardContent className="pt-4 pb-4 text-center space-y-2">
+                  <div className={`mx-auto w-10 h-10 rounded-full flex items-center justify-center ${h.bg}`}>
+                    <h.icon className={`h-5 w-5 ${h.iconColor}`} />
+                  </div>
+                  <div className="text-xs font-bold text-muted-foreground">STEP {h.step}</div>
+                  <div className="font-semibold text-sm">{h.title}</div>
+                  <div className="text-xs text-muted-foreground leading-tight">{h.desc}</div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* â”€â”€ Social impact callout â”€â”€ */}
+        <Card className="border-0 bg-gradient-to-r from-emerald-700 to-green-600 text-white shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start gap-4">
+              <div className="text-4xl shrink-0">â™»ï¸</div>
+              <div>
+                <h3 className="font-bold text-lg">Invisible No More</h3>
+                <p className="text-green-100 text-sm mt-1">
+                  Waste pickers recover 15â€“20% of India's recyclables â€” without them, 
+                  our cities would drown in waste. Yet they earn under â‚¹200/day with
+                  no safety net, no identity, and no access to the economy.
+                  SwachhBuddy gives them what they've always deserved: <strong>visibility</strong>.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* â”€â”€ Modals â”€â”€ */}
+      <RagPickerRegistration
+        isOpen={showRegister}
+        onClose={() => setShowRegister(false)}
+        onRegistered={p => { setActiveProfile(p); setShowRegister(false); }}
+      />
+
+      <LogCollectionModal
+        isOpen={showLogModal}
+        onClose={() => setShowLogModal(false)}
+        ragPickerProfile={activeProfile}
+        verifyingEmployeeId={user?.uid}
+      />
+
+      {activeProfile && (
+        <>
+          <IncomeCertificate
+            isOpen={showCertificate}
+            onClose={() => setShowCertificate(false)}
+            profile={activeProfile}
+          />
+          <CollectionHistory
+            isOpen={showHistory}
+            onClose={() => setShowHistory(false)}
+            ragPickerId={activeProfile.id}
+            ragPickerName={activeProfile.name}
+          />
+        </>
+      )}
+    </div>
+  );
+};
+
+export default RagPickerIdentityDashboard;
+========== C:\Users\jannat garg\OneDrive\Desktop\Projects folder\SwachhBuddy\Swachh-Buddy\src\pages\RagPickerStories.tsx ==========
+// src/pages/RagPickerStories.tsx
+// Read-only page for CITIZENS â€” search & view verified rag picker profiles
+import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import {
+  ArrowLeft, Search, ShieldCheck, Heart, Star, Recycle, IdCard,
+} from "lucide-react";
+import {
+  RagPickerProfile,
+  getRagPickerById,
+  findRagPickerByPhone,
+} from "@/services/ragpickerIdentity";
+import { DigitalIDCardWithActions } from "@/components/ragpicker/DigitalIDCard";
+import CollectionHistory from "@/components/ragpicker/CollectionHistory";
+
+const STORIES = [
+  {
+    emoji: "ðŸ‘¨",
+    name: "Ramesh Kumar",
+    city: "Delhi",
+    quote: "Before SwachhBuddy, I had no proof of my work. Now I have an ID and applied for a Jan Dhan account.",
+    kg: "1,240 kg",
+    years: "6 years",
+  },
+  {
+    emoji: "ðŸ‘©",
+    name: "Sunita Devi",
+    city: "Noida",
+    quote: "My Swachh Score helped me get a â‚¹10,000 microloan to buy a better cart. My income doubled.",
+    kg: "890 kg",
+    years: "4 years",
+  },
+  {
+    emoji: "ðŸ‘´",
+    name: "Abdul Hamid",
+    city: "Gurugram",
+    quote: "I am 58 years old. With the income certificate I enrolled in PM Shram Yogi Maandhan â€” I will get a pension.",
+    kg: "2,100 kg",
+    years: "11 years",
+  },
+];
+
+const RagPickerStories: React.FC = () => {
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const { toast } = useToast();
+
+  const handleBack = () => {
+    const state = location.state as any;
+    if (state?.from) {
+      navigate(state.from, { state: { activeTab: state.activeTab || "learning" } });
+    } else {
+      navigate(-1);
+    }
+  };
+
+  const [searchQuery, setSearchQuery]   = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [foundProfile, setFoundProfile] = useState<RagPickerProfile | null>(null);
+  const [showHistory, setShowHistory]   = useState(false);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setSearchLoading(true);
+    try {
+      let profile: RagPickerProfile | null = null;
+      if (searchQuery.startsWith("SB-RP-")) {
+        profile = await getRagPickerById(searchQuery.trim());
+      } else {
+        profile = await findRagPickerByPhone(searchQuery.trim());
+      }
+      if (profile) {
+        setFoundProfile(profile);
+      } else {
+        toast({
+          title: "No verified picker found",
+          description: "Check the ID or number and try again.",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({ title: "Search failed", variant: "destructive" });
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+
+      {/* â”€â”€ Header â”€â”€ */}
+      <div className="bg-gradient-to-r from-green-800 to-emerald-700 text-white px-4 py-6">
+        <div className="max-w-4xl mx-auto">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-white hover:bg-white/20 mb-4"
+            onClick={handleBack}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back
+          </Button>
+          <div className="flex items-start gap-3">
+            <Recycle className="h-7 w-7 text-green-200 shrink-0 mt-0.5" />
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold">Rag Picker Stories</h1>
+              <p className="text-green-200 text-sm mt-1 max-w-xl">
+                Meet the people who keep our cities clean every day â€”
+                now formally recognised through SwachhBuddy's Digital Identity System.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-8">
+
+        {/* â”€â”€ Impact numbers â”€â”€ */}
+        <div className="grid grid-cols-3 gap-3 text-center">
+          {[
+            { value: "4M+",  label: "Waste pickers in India", icon: "ðŸ‘·" },
+            { value: "80%",  label: "Work without any ID",    icon: "ðŸ“‹" },
+            { value: "â‚¹200", label: "Average daily income",   icon: "ðŸ’°" },
+          ].map(s => (
+            <Card key={s.label} className="border-0 shadow-sm">
+              <CardContent className="pt-4 pb-4">
+                <div className="text-2xl mb-1">{s.icon}</div>
+                <div className="text-xl font-bold text-green-600 dark:text-green-400">{s.value}</div>
+                <div className="text-xs text-muted-foreground">{s.label}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* â”€â”€ Verify a Picker ID â”€â”€ */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
+              Verify a Waste Picker's Digital ID
+            </CardTitle>
+            <CardDescription>
+              Enter a Picker ID (SB-RP-â€¦) or their mobile number to see their verified profile
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="SB-RP-ABC123 or mobile number"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSearch()}
+              />
+              <Button
+                variant="outline"
+                onClick={handleSearch}
+                disabled={searchLoading || !searchQuery.trim()}
+                className="shrink-0"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Found profile */}
+            {foundProfile && (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700">
+                    âœ… Verified Profile Found
+                  </Badge>
+                </div>
+                <div className="flex flex-col md:flex-row gap-4 items-start">
+                  <div className="w-full md:w-64 shrink-0">
+                    <DigitalIDCardWithActions profile={foundProfile} />
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { label: "Total Collected", value: `${foundProfile.totalKgCollected.toFixed(1)} kg`, icon: "âš–ï¸" },
+                        { label: "Verified Earnings", value: `â‚¹${foundProfile.totalEarningsRs.toFixed(0)}`, icon: "ðŸ’°" },
+                        { label: "Swachh Score", value: foundProfile.swachhScore.toString(), icon: "â­" },
+                        { label: "Status", value: foundProfile.isVerified ? "Verified âœ…" : "Pending", icon: "ðŸ”’" },
+                      ].map(s => (
+                        <Card key={s.label} className="shadow-sm">
+                          <CardContent className="pt-3 pb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{s.icon}</span>
+                              <div>
+                                <p className="text-xs text-muted-foreground">{s.label}</p>
+                                <p className="font-semibold text-sm">{s.value}</p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-violet-600 dark:text-violet-400 border-violet-300 dark:border-violet-700"
+                      onClick={() => setShowHistory(true)}
+                    >
+                      View Collection History
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* â”€â”€ Stories â”€â”€ */}
+        <div>
+          <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <Heart className="h-5 w-5 text-rose-500" /> Real Stories
+          </h2>
+          <div className="space-y-4">
+            {STORIES.map(s => (
+              <Card key={s.name} className="shadow-sm">
+                <CardContent className="pt-5 pb-5">
+                  <div className="flex items-start gap-4">
+                    <div className="text-4xl shrink-0">{s.emoji}</div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <p className="font-bold">{s.name}</p>
+                        <Badge variant="outline" className="text-xs">{s.city}</Badge>
+                        <Badge variant="outline" className="text-xs">{s.years} experience</Badge>
+                        <Badge variant="outline" className="text-xs text-green-600 dark:text-green-400 border-green-300 dark:border-green-700">
+                          {s.kg} collected
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground italic">"{s.quote}"</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* â”€â”€ What Citizens Can Do â”€â”€ */}
+        <Card className="border-0 bg-gradient-to-r from-green-800 to-emerald-700 text-white shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+              <Star className="h-5 w-5 text-yellow-300" /> How You Can Help
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {[
+                { icon: "ðŸ¤", title: "Greet them by name", desc: "Ask for their SwachhBuddy ID â€” it encourages formal registration" },
+                { icon: "â™»ï¸", title: "Segregate your waste", desc: "Clean segregated waste increases their earnings per kg" },
+                { icon: "ðŸ“¢", title: "Spread the word", desc: "Tell other waste pickers about their right to a Digital ID" },
+              ].map(a => (
+                <div key={a.title} className="bg-white/10 rounded-lg p-3">
+                  <div className="text-2xl mb-1">{a.icon}</div>
+                  <p className="font-semibold text-sm">{a.title}</p>
+                  <p className="text-xs text-green-100 mt-0.5">{a.desc}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* â”€â”€ Modals â”€â”€ */}
+      {foundProfile && (
+        <CollectionHistory
+          isOpen={showHistory}
+          onClose={() => setShowHistory(false)}
+          ragPickerId={foundProfile.id}
+          ragPickerName={foundProfile.name}
+        />
+      )}
+    </div>
+  );
+};
+
+export default RagPickerStories;
 ========== C:\Users\jannat garg\OneDrive\Desktop\Projects folder\SwachhBuddy\Swachh-Buddy\src\pages\resolve.tsx ==========
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
@@ -20686,6 +22572,321 @@ export const createTestReferralCode = async (
     };
   }
 };
+========== C:\Users\jannat garg\OneDrive\Desktop\Projects folder\SwachhBuddy\Swachh-Buddy\src\services\ragpickerIdentity.ts ==========
+// src/services/ragpickerIdentity.ts
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  limit,
+  addDoc,
+  Timestamp,
+  increment,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+export interface RagPickerProfile {
+  id: string;                     // Firestore doc ID = SB-RP-XXXXXX
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  zone: string;
+  aadhaarLast4?: string;          // last 4 digits only â€” privacy safe
+  photoUrl?: string;
+  registeredAt: Timestamp | Date;
+  isVerified: boolean;
+  swachhScore: number;            // 0â€“1000
+  totalKgCollected: number;
+  totalEarningsRs: number;
+  activeMonths: number;
+  bankLinked: boolean;
+  insuranceLinked: boolean;
+}
+
+export interface CollectionRecord {
+  id?: string;
+  ragPickerId: string;
+  date: Timestamp | Date;
+  weightKg: number;
+  materialType: "Plastic" | "Paper" | "Metal" | "Glass" | "E-Waste" | "Mixed";
+  locationName: string;
+  latitude?: number;
+  longitude?: number;
+  ratePerKg: number;              // â‚¹/kg paid
+  earningsRs: number;             // weightKg Ã— ratePerKg
+  verifiedByEmployeeId?: string;
+  notes?: string;
+}
+
+export interface MonthlySummary {
+  ragPickerId: string;
+  month: string;                  // "2025-03"
+  totalKg: number;
+  totalEarningsRs: number;
+  collectionDays: number;
+  materialsBreakdown: Record<string, number>; // { Plastic: 12, Paper: 8, â€¦ }
+  swachhScoreDelta: number;
+  certificateGenerated: boolean;
+}
+
+// â”€â”€ Rate card (â‚¹/kg) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export const RATE_CARD: Record<CollectionRecord["materialType"], number> = {
+  Plastic: 12,
+  Paper: 8,
+  Metal: 25,
+  Glass: 4,
+  "E-Waste": 40,
+  Mixed: 7,
+};
+
+// â”€â”€ Swachh Score weights â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const SCORE_PER_KG = 2;
+const SCORE_PER_DAY = 5;
+const SCORE_BONUS_EWASTE = 10; // per kg of e-waste
+
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const generateRagPickerId = () =>
+  "SB-RP-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+
+// â”€â”€ CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+/** Register a new rag picker */
+export const registerRagPicker = async (
+  data: Omit<RagPickerProfile, "id" | "registeredAt" | "isVerified" | "swachhScore" | "totalKgCollected" | "totalEarningsRs" | "activeMonths" | "bankLinked" | "insuranceLinked">
+): Promise<RagPickerProfile> => {
+  const id = generateRagPickerId();
+  const profile: RagPickerProfile = {
+    ...data,
+    id,
+    registeredAt: Timestamp.now(),
+    isVerified: false,
+    swachhScore: 0,
+    totalKgCollected: 0,
+    totalEarningsRs: 0,
+    activeMonths: 0,
+    bankLinked: false,
+    insuranceLinked: false,
+  };
+  await setDoc(doc(db, "ragpickers", id), profile);
+  return profile;
+};
+
+/** Fetch a rag picker by ID */
+export const getRagPickerById = async (id: string): Promise<RagPickerProfile | null> => {
+  try {
+    const snap = await getDoc(doc(db, "ragpickers", id));
+    return snap.exists() ? (snap.data() as RagPickerProfile) : null;
+  } catch (err: any) {
+    // Collection may not exist yet â€” treat as not found
+    if (err?.code === "permission-denied" || err?.code === "not-found") return null;
+    throw err;
+  }
+};
+
+/** Search rag pickers by phone */
+export const findRagPickerByPhone = async (phone: string): Promise<RagPickerProfile | null> => {
+  try {
+    const q = query(
+      collection(db, "ragpickers"),
+      where("phone", "==", phone),
+      limit(1)
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return null;
+    return snap.docs[0].data() as RagPickerProfile;
+  } catch (err: any) {
+    // If collection doesn't exist yet Firestore returns an empty snapshot,
+    // but if rules block it we get permission-denied â€” treat both as "not found"
+    if (
+      err?.code === "permission-denied" ||
+      err?.code === "not-found" ||
+      err?.message?.includes("index")
+    ) {
+      return null;
+    }
+    throw err;
+  }
+};
+
+/** Get all rag pickers in a zone */
+export const getRagPickersByZone = async (zone: string): Promise<RagPickerProfile[]> => {
+  try {
+    const q = query(collection(db, "ragpickers"), where("zone", "==", zone));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => d.data() as RagPickerProfile);
+  } catch {
+    return [];
+  }
+};
+
+/** Log a collection record */
+export const logCollectionRecord = async (
+  record: Omit<CollectionRecord, "id" | "earningsRs">
+): Promise<CollectionRecord> => {
+  const earningsRs = parseFloat((record.weightKg * record.ratePerKg).toFixed(2));
+  const full: CollectionRecord = { ...record, earningsRs };
+
+  const colRef = collection(db, "ragpickers", record.ragPickerId, "collections");
+  const added  = await addDoc(colRef, full);
+
+  // Compute score delta
+  const scoreDelta =
+    record.weightKg * SCORE_PER_KG +
+    SCORE_PER_DAY +
+    (record.materialType === "E-Waste" ? record.weightKg * SCORE_BONUS_EWASTE : 0);
+
+  // Update aggregate on profile â€” use setDoc merge so it works even if doc is new
+  await setDoc(
+    doc(db, "ragpickers", record.ragPickerId),
+    {
+      totalKgCollected: increment(record.weightKg),
+      totalEarningsRs:  increment(earningsRs),
+      swachhScore:      increment(scoreDelta),
+    },
+    { merge: true }
+  );
+
+  return { ...full, id: added.id };
+};
+
+/** Get collection history for a rag picker (latest 30) */
+export const getCollectionHistory = async (ragPickerId: string): Promise<CollectionRecord[]> => {
+  try {
+    // Try with orderBy first (requires index)
+    const q = query(
+      collection(db, "ragpickers", ragPickerId, "collections"),
+      orderBy("date", "desc"),
+      limit(30)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as CollectionRecord));
+  } catch (err: any) {
+    // Fallback: fetch without orderBy if index not yet built
+    if (err?.message?.includes("index") || err?.code === "failed-precondition") {
+      try {
+        const q2 = query(
+          collection(db, "ragpickers", ragPickerId, "collections"),
+          limit(30)
+        );
+        const snap2 = await getDocs(q2);
+        const records = snap2.docs.map(d => ({ id: d.id, ...d.data() } as CollectionRecord));
+        // Sort client-side
+        return records.sort((a, b) => {
+          const da = a.date instanceof Timestamp ? a.date.toMillis() : new Date(a.date).getTime();
+          const db2 = b.date instanceof Timestamp ? b.date.toMillis() : new Date(b.date).getTime();
+          return db2 - da;
+        });
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }
+};
+
+/** Build a monthly summary for a given month (YYYY-MM) */
+export const getMonthlySummary = async (
+  ragPickerId: string,
+  month: string
+): Promise<MonthlySummary> => {
+  const allRecords = await getCollectionHistory(ragPickerId);
+  const records = allRecords.filter(r => {
+    const d = r.date instanceof Timestamp ? r.date.toDate() : new Date(r.date);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` === month;
+  });
+
+  const materialsBreakdown: Record<string, number> = {};
+  let totalKg = 0;
+  let totalEarningsRs = 0;
+  const days = new Set<string>();
+  let scoreDelta = 0;
+
+  for (const r of records) {
+    totalKg += r.weightKg;
+    totalEarningsRs += r.earningsRs;
+    materialsBreakdown[r.materialType] = (materialsBreakdown[r.materialType] || 0) + r.weightKg;
+    const d = r.date instanceof Timestamp ? r.date.toDate() : new Date(r.date);
+    days.add(d.toDateString());
+    scoreDelta +=
+      r.weightKg * SCORE_PER_KG +
+      SCORE_PER_DAY +
+      (r.materialType === "E-Waste" ? r.weightKg * SCORE_BONUS_EWASTE : 0);
+  }
+
+  return {
+    ragPickerId,
+    month,
+    totalKg: parseFloat(totalKg.toFixed(2)),
+    totalEarningsRs: parseFloat(totalEarningsRs.toFixed(2)),
+    collectionDays: days.size,
+    materialsBreakdown,
+    swachhScoreDelta: parseFloat(scoreDelta.toFixed(0)),
+    certificateGenerated: false,
+  };
+};
+
+/** Verify a rag picker (municipal employee action) */
+export const verifyRagPicker = async (ragPickerId: string, employeeId: string) => {
+  await updateDoc(doc(db, "ragpickers", ragPickerId), {
+    isVerified: true,
+    verifiedBy: employeeId,
+    verifiedAt: Timestamp.now(),
+  });
+};
+
+/** Mark bank as linked */
+export const markBankLinked = async (ragPickerId: string) => {
+  await updateDoc(doc(db, "ragpickers", ragPickerId), { bankLinked: true });
+};
+
+/** Generate a text-based income certificate (no PDF dep needed) */
+export const generateIncomeCertificateText = (
+  profile: RagPickerProfile,
+  summary: MonthlySummary,
+  monthLabel: string
+): string => {
+  const lines = [
+    "â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•",
+    "         SWACHH BUDDY â€” VERIFIED INCOME CERTIFICATE",
+    "â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•",
+    "",
+    `  Rag Picker ID  : ${profile.id}`,
+    `  Name           : ${profile.name}`,
+    `  City / Zone    : ${profile.city} â€” ${profile.zone}`,
+    `  Swachh Score   : ${profile.swachhScore} pts`,
+    `  Verified       : ${profile.isVerified ? "âœ… YES" : "â³ PENDING"}`,
+    "",
+    `  â”€â”€ Income Summary for ${monthLabel} â”€â”€`,
+    `  Active Days     : ${summary.collectionDays}`,
+    `  Total Collected : ${summary.totalKg} kg`,
+    `  Total Earnings  : â‚¹ ${summary.totalEarningsRs}`,
+    "",
+    "  â”€â”€ Material Breakdown â”€â”€",
+    ...Object.entries(summary.materialsBreakdown).map(
+      ([mat, kg]) => `  ${mat.padEnd(10)} : ${kg.toFixed(2)} kg`
+    ),
+    "",
+    "  â”€â”€ Eligible For â”€â”€",
+    "  âœ… Jan Dhan Bank Account",
+    "  âœ… PM Suraksha Bima Yojana (Insurance)",
+    "  âœ… Pradhan Mantri Shram Yogi Maandhan",
+    "  âœ… Micro-loan from SHG / MFI",
+    "",
+    `  Certificate Date : ${new Date().toLocaleDateString("en-IN")}`,
+    "  Issued by        : SwachhBuddy Digital Platform",
+    "â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•",
+  ];
+  return lines.join("\n");
+};
 ========== C:\Users\jannat garg\OneDrive\Desktop\Projects folder\SwachhBuddy\Swachh-Buddy\src\services\referral.ts ==========
 import {
   doc,
@@ -21068,7 +23269,7 @@ export const useUserCoins = () => useUserStore((state) => state.coins);
 export const useUserLoading = () => useUserStore((state) => state.isLoading);
 export const clearUserStorePersistence = () => useUserStore.persist.clearStorage();
 ========== C:\Users\jannat garg\OneDrive\Desktop\Projects folder\SwachhBuddy\Swachh-Buddy\src\App.tsx ==========
-// src/App.tsx
+// src/App.tsx  â† UPDATED: added /ragpicker-identity route
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21134,6 +23335,11 @@ import { EcoEscapeRoom } from "./components/EcoEscapeRoom";
 import NotFound from "./pages/NotFound";
 import { PointsProvider } from "@/contexts/PointsContext";
 
+// â”€â”€ NEW: Rag Picker Digital Identity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+import RagPickerIdentityDashboard from "./pages/RagPickerIdentityDashboard";
+import RagPickerStories from "./pages/RagPickerStories";
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -21195,6 +23401,10 @@ const App = () => (
 
               <Route path="/dashboard/corporate" element={<ProtectedRoute requireAuth={true}><CDashboard /></ProtectedRoute>} />
               <Route path="/dashboard/enduser"   element={<ProtectedRoute requireAuth={true}><EDashboard /></ProtectedRoute>} />
+
+              {/* â”€â”€ NEW ROUTES â”€â”€ */}
+              <Route path="/ragpicker-identity" element={<RagPickerIdentityDashboard />} />
+              <Route path="/ragpicker-stories"  element={<RagPickerStories />} />
 
               <Route path="/manage-waste"    element={<WasteGame />} />
               <Route path="/eco-sorter-game" element={<EcoSorterGame />} />

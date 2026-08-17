@@ -101,15 +101,61 @@ export const AIWasteClassifier = ({ isOpen, onClose }: AIWasteClassifierProps) =
 
   if (!isOpen) return null;
 
-  const handleImageSelect = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImage(e.target?.result as string);
-      setResult(null);
-      setPointsAwarded(false);
-      setIsDemoMode(false);
-    };
-    reader.readAsDataURL(file);
+  // Client-side image compression to prevent Vercel 4.5MB payload limits
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1024;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(e.target?.result as string);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+          resolve(compressedDataUrl);
+        };
+        img.onerror = () => resolve(e.target?.result as string);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageSelect = async (file: File) => {
+    try {
+      const compressedDataUrl = await compressImage(file);
+      if (compressedDataUrl) {
+        setImage(compressedDataUrl);
+        setResult(null);
+        setPointsAwarded(false);
+        setIsDemoMode(false);
+      }
+    } catch {
+      toast({
+        title: "Image error",
+        description: "Failed to process image. Please try another.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleAnalyze = async () => {

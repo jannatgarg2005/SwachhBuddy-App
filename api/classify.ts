@@ -116,7 +116,7 @@ export default async function handler(req: Request): Promise<Response> {
           },
         ],
         temperature: 0.1,
-        max_tokens: 600,
+        max_tokens: 2048,
       }),
     });
 
@@ -133,11 +133,17 @@ export default async function handler(req: Request): Promise<Response> {
 
     // Strip thinking tags (qwen outputs <think>...</think> before the JSON)
     // and any accidental markdown fences, then parse JSON
-    const clean = text
+    let clean = text
       .replace(/<think>[\s\S]*?<\/think>/gi, "")
       .replace(/```json|```/g, "")
       .trim();
-    const jsonMatch = clean.match(/\{[\s\S]*\}/);
+
+    let jsonMatch = clean.match(/\{[\s\S]*\}/);
+
+    // Resilient fallback in case think block was structured differently
+    if (!jsonMatch) {
+      jsonMatch = text.match(/\{[\s\S]*"category"[\s\S]*\}/);
+    }
 
     if (!jsonMatch) {
       return new Response(

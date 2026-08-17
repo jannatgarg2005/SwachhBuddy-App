@@ -131,8 +131,12 @@ export default async function handler(req: Request): Promise<Response> {
     const data = await groqResponse.json();
     const text = data.choices?.[0]?.message?.content || "";
 
-    // Strip any accidental markdown fences and parse JSON
-    const clean = text.replace(/```json|```/g, "").trim();
+    // Strip thinking tags (qwen outputs <think>...</think> before the JSON)
+    // and any accidental markdown fences, then parse JSON
+    const clean = text
+      .replace(/<think>[\s\S]*?<\/think>/gi, "")
+      .replace(/```json|```/g, "")
+      .trim();
     const jsonMatch = clean.match(/\{[\s\S]*\}/);
 
     if (!jsonMatch) {

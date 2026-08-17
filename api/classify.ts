@@ -97,7 +97,7 @@ export default async function handler(req: Request): Promise<Response> {
         "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "llama-3.2-11b-vision-preview",
+        model: "qwen/qwen3.6-27b",
         messages: [
           {
             role: "user",

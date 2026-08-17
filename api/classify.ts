@@ -116,7 +116,8 @@ export default async function handler(req: Request): Promise<Response> {
           },
         ],
         temperature: 0.1,
-        max_tokens: 2048,
+        max_tokens: 600,
+        reasoning_effort: "none",
       }),
     });
 

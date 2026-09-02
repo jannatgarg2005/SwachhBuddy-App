@@ -1,9 +1,9 @@
-// api/classify.ts — Vercel Edge Function — AI Waste Classifier via Google Gemini Vision API
+// api/classify.ts — Vercel Edge Function — AI Waste Classifier via Groq Vision API (Llama 3.2 Vision)
 
 export const config = { runtime: "edge" };
 
 // Get API key at module load time for Vercel Edge
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 
 const SYSTEM_PROMPT = `You are an expert waste classification AI for India's Swachh Bharat Mission.
 
@@ -81,69 +81,62 @@ export default async function handler(req: Request): Promise<Response> {
     }
 
     // Use the API key loaded at module initialization
-    if (!GEMINI_API_KEY) {
-      console.error("❌ GEMINI_API_KEY not found in environment variables");
-      return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured on server" }), {
+    if (!GROQ_API_KEY) {
+      console.error("❌ GROQ_API_KEY not found in environment variables");
+      return new Response(JSON.stringify({ error: "GROQ_API_KEY not configured on server" }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    console.log("✅ Gemini API key found, making request to Google Gemini Vision");
+    console.log("✅ Groq API key found, making request to Groq Vision (llama-3.2-90b-vision-preview)");
 
-    // Call Gemini with vision capabilities
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  inline_data: {
-                    mime_type: mimeType,
-                    data: imageBase64,
-                  },
+    // Groq Vision uses OpenAI-compatible format with image_url
+    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.2-90b-vision-preview",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:${mimeType};base64,${imageBase64}`,
                 },
-                {
-                  text: SYSTEM_PROMPT,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 1500,
+              },
+              {
+                type: "text",
+                text: SYSTEM_PROMPT,
+              },
+            ],
           },
-          safetySettings: [
-            {
-              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-              threshold: "BLOCK_NONE",
-            },
-          ],
-        }),
-      }
-    );
+        ],
+        temperature: 0.1,
+        max_tokens: 1500,
+      }),
+    });
 
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error(`❌ Gemini API error ${geminiResponse.status}:`, errorText.substring(0, 500));
+    if (!groqResponse.ok) {
+      const errorText = await groqResponse.text();
+      console.error(`❌ Groq API error ${groqResponse.status}:`, errorText.substring(0, 500));
       return new Response(
-        JSON.stringify({ error: `Gemini API error: ${geminiResponse.status}`, detail: errorText }),
-        { status: geminiResponse.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        JSON.stringify({ error: `Groq API error: ${groqResponse.status}`, detail: errorText }),
+        { status: groqResponse.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    const data = await geminiResponse.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const data = await groqResponse.json();
+    const text = data.choices?.[0]?.message?.content || "";
 
-    console.log("📥 Raw Gemini response (first 300 chars):", text.substring(0, 300));
+    console.log("📥 Raw Groq Vision response (first 300 chars):", text.substring(0, 300));
 
-    // Extract JSON from response (Gemini might include explanation before JSON)
+    // Extract JSON from response (model might include explanation before JSON)
     let clean = text
       .replace(/```json\n?/g, "")
       .replace(/```\n?/g, "")

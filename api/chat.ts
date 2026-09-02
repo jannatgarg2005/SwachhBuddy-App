@@ -1,9 +1,9 @@
-// api/chat.ts — Vercel Edge Function — EcoBuddy chatbot via Google Gemini API
+// api/chat.ts — Vercel Edge Function — EcoBuddy chatbot via Groq API (Mixtral)
 
 export const config = { runtime: "edge" };
 
 // Get API key at module load time for Vercel Edge
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 
 const SYSTEM_PROMPT = `You are EcoBuddy, a friendly and knowledgeable AI assistant embedded in Swachh Buddy — India's waste management app for the Swachh Bharat Mission.
 
@@ -90,78 +90,60 @@ export default async function handler(req: Request): Promise<Response> {
     }
 
     // Use the API key loaded at module initialization
-    if (!GEMINI_API_KEY) {
-      console.error("❌ GEMINI_API_KEY not found in environment variables");
-      return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured on server" }), {
+    if (!GROQ_API_KEY) {
+      console.error("❌ GROQ_API_KEY not found in environment variables");
+      return new Response(JSON.stringify({ error: "GROQ_API_KEY not configured on server" }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    console.log("✅ Gemini API key found, making request to Google Gemini");
+    console.log("✅ Groq API key found, making request to Groq Mixtral");
 
-    // Convert messages to Gemini format
-    const geminiContents = messages.map((m) => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
-    }));
+    // Groq uses the OpenAI-compatible format
+    const groqMessages = [
+      { role: "system", content: SYSTEM_PROMPT },
+      ...messages.map((m) => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: m.content,
+      })),
+    ];
 
-    // Add system prompt as first user message if not already there
-    if (geminiContents.length > 0 && geminiContents[0].role !== "user") {
-      geminiContents.unshift({
-        role: "user",
-        parts: [{ text: SYSTEM_PROMPT }],
-      });
-      geminiContents.splice(1, 0, {
-        role: "model",
-        parts: [{ text: "I understand. I'm EcoBuddy, your waste management assistant." }],
-      });
-    }
+    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "mixtral-8x7b-32768",
+        messages: groqMessages,
+        temperature: 0.7,
+        max_tokens: 400,
+      }),
+    });
 
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: geminiContents,
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 400,
-          },
-          safetySettings: [
-            {
-              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-              threshold: "BLOCK_NONE",
-            },
-          ],
-        }),
-      }
-    );
-
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error(`❌ Gemini API error ${geminiResponse.status}:`, errorText.substring(0, 500));
+    if (!groqResponse.ok) {
+      const errorText = await groqResponse.text();
+      console.error(`❌ Groq API error ${groqResponse.status}:`, errorText.substring(0, 500));
       return new Response(
-        JSON.stringify({ error: `Gemini API error: ${geminiResponse.status}`, detail: errorText }),
-        { status: geminiResponse.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        JSON.stringify({ error: `Groq API error: ${groqResponse.status}`, detail: errorText }),
+        { status: groqResponse.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    const data = await geminiResponse.json();
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const data = await groqResponse.json();
+    const reply = data.choices?.[0]?.message?.content || "";
 
     if (!reply) {
-      console.error("❌ No response text from Gemini");
+      console.error("❌ No response text from Groq");
       return new Response(
-        JSON.stringify({ error: "No response from Gemini API" }),
+        JSON.stringify({ error: "No response from Groq API" }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    console.log("✅ Gemini responded successfully");
+    console.log("✅ Groq responded successfully");
 
     return new Response(JSON.stringify({ reply }), {
       status: 200,

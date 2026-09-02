@@ -86,15 +86,24 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
-    const apiKey = (globalThis as unknown as { process?: { env?: Record<string, string> } })
-      .process?.env?.GROQ_API_KEY || "";
+    // Try to get API key from Vercel environment or process.env
+    let apiKey = "";
+    if (typeof process !== "undefined" && process.env) {
+      apiKey = process.env.GROQ_API_KEY || "";
+    } else {
+      apiKey = (globalThis as unknown as { process?: { env?: Record<string, string> } })
+        .process?.env?.GROQ_API_KEY || "";
+    }
 
     if (!apiKey) {
+      console.error("❌ GROQ_API_KEY not found in environment variables");
       return new Response(JSON.stringify({ error: "GROQ_API_KEY not configured on server" }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
+
+    console.log("✅ API key found, making request to Groq chat API");
 
     // Groq uses the OpenAI-compatible format
     // System message goes as the first message with role "system"

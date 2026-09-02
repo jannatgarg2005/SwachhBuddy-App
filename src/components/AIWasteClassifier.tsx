@@ -174,24 +174,52 @@ export const AIWasteClassifier = ({ isOpen, onClose }: AIWasteClassifierProps) =
       const base64Data = image.split(",")[1];
       const mimeType   = image.split(";")[0].split(":")[1];
 
-      const response = await fetch("/api/classify", {
+      // Build API URL - works for both relative (Vercel) and absolute (custom domain)
+      const apiUrl = window.location.origin + "/api/classify";
+
+      console.log("🔍 Calling classifier API:", apiUrl);
+
+      const response = await fetch(apiUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
         body: JSON.stringify({ imageBase64: base64Data, mimeType }),
       });
 
       const responseText = await response.text();
+      console.log("📥 Classifier response status:", response.status);
+      console.log("📥 Classifier response:", responseText.substring(0, 200));
 
       if (!response.ok) {
-        console.error("Classify API error:", response.status, responseText);
-        throw new Error(`API error ${response.status}`);
+        console.error("❌ Classify API error:", response.status, responseText);
+
+        // Show specific error message to user
+        let errorMsg = "Could not reach the AI classifier.";
+        if (response.status === 500 && responseText.includes("GROQ_API_KEY")) {
+          errorMsg = "API key not configured on server. Please contact admin.";
+        } else if (response.status === 429) {
+          errorMsg = "API rate limit reached. Please try again in a few seconds.";
+        } else if (response.status >= 500) {
+          errorMsg = "Server error. The AI service may be temporarily unavailable.";
+        }
+
+        throw new Error(errorMsg);
       }
 
       let data: Record<string, unknown>;
       try {
         data = JSON.parse(responseText);
-      } catch {
-        throw new Error("Invalid JSON from classify API");
+      } catch (parseErr) {
+        console.error("❌ JSON parse error:", parseErr);
+        throw new Error("Invalid response from AI service");
+      }
+
+      // Check if we got an error response
+      if (data.error) {
+        console.error("❌ API returned error:", data.error);
+        throw new Error(data.error as string);
       }
 
       const category = (data.category as string) || "unknown";
@@ -205,13 +233,20 @@ export const AIWasteClassifier = ({ isOpen, onClose }: AIWasteClassifierProps) =
       } as ClassificationResult);
       setIsDemoMode(false);
 
+      console.log("✅ Classification successful:", category);
+
     } catch (err) {
-      console.error("Classification error:", err);
+      console.error("❌ Classification error:", err);
+
+      const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
+
       toast({
         title: "Classification failed",
-        description: "Could not reach the AI classifier. Showing a demo result.",
+        description: errorMessage,
         variant: "destructive",
       });
+
+      // Show demo result as fallback
       setResult(DEMO_RESULT);
       setIsDemoMode(true);
     } finally {

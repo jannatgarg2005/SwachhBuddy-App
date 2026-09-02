@@ -77,15 +77,24 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
-    const apiKey = (globalThis as unknown as { process?: { env?: Record<string, string> } })
-      .process?.env?.GROQ_API_KEY || "";
+    // Try to get API key from Vercel environment or process.env
+    let apiKey = "";
+    if (typeof process !== "undefined" && process.env) {
+      apiKey = process.env.GROQ_API_KEY || "";
+    } else {
+      apiKey = (globalThis as unknown as { process?: { env?: Record<string, string> } })
+        .process?.env?.GROQ_API_KEY || "";
+    }
 
     if (!apiKey) {
+      console.error("❌ GROQ_API_KEY not found in environment variables");
       return new Response(JSON.stringify({ error: "GROQ_API_KEY not configured on server" }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
+
+    console.log("✅ API key found, making request to Groq vision API");
 
     // Groq vision uses OpenAI-compatible format with image_url containing a base64 data URL
     const dataUrl = `data:${mimeType};base64,${imageBase64}`;
@@ -122,6 +131,7 @@ export default async function handler(req: Request): Promise<Response> {
 
     if (!groqResponse.ok) {
       const errorText = await groqResponse.text();
+      console.error(`❌ Groq API error ${groqResponse.status}:`, errorText.substring(0, 500));
       return new Response(
         JSON.stringify({ error: `Groq API error: ${groqResponse.status}`, detail: errorText }),
         { status: groqResponse.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -130,6 +140,8 @@ export default async function handler(req: Request): Promise<Response> {
 
     const data = await groqResponse.json();
     const text = data.choices?.[0]?.message?.content || "";
+
+    console.log("📥 Raw Groq response (first 300 chars):", text.substring(0, 300));
 
     // Strip thinking tags (qwen outputs <think>...</think> before the JSON)
     // and any accidental markdown fences, then parse JSON
@@ -146,13 +158,15 @@ export default async function handler(req: Request): Promise<Response> {
     }
 
     if (!jsonMatch) {
+      console.error("❌ Could not extract JSON from response:", text.substring(0, 500));
       return new Response(
-        JSON.stringify({ error: "Could not parse JSON from AI response", raw: text }),
+        JSON.stringify({ error: "Could not parse JSON from AI response", raw: text.substring(0, 500) }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
     const result = JSON.parse(jsonMatch[0]);
+    console.log("✅ Classification successful:", result.category);
 
     return new Response(JSON.stringify(result), {
       status: 200,
@@ -160,6 +174,7 @@ export default async function handler(req: Request): Promise<Response> {
     });
 
   } catch (err) {
+    console.error("❌ Classifier error:", err);
     return new Response(
       JSON.stringify({ error: "Internal server error", detail: String(err) }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }

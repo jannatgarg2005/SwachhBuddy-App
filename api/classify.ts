@@ -1,9 +1,9 @@
-// api/classify.ts — Vercel Edge Function — AI Waste Classifier via Groq Vision API
+// api/classify.ts — Vercel Edge Function — AI Waste Classifier via Google Gemini Vision API
 
 export const config = { runtime: "edge" };
 
 // Get API key at module load time for Vercel Edge
-const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
 const SYSTEM_PROMPT = `You are an expert waste classification AI for India's Swachh Bharat Mission.
 
@@ -81,73 +81,77 @@ export default async function handler(req: Request): Promise<Response> {
     }
 
     // Use the API key loaded at module initialization
-    if (!GROQ_API_KEY) {
-      console.error("❌ GROQ_API_KEY not found in environment variables");
-      return new Response(JSON.stringify({ error: "GROQ_API_KEY not configured on server" }), {
+    if (!GEMINI_API_KEY) {
+      console.error("❌ GEMINI_API_KEY not found in environment variables");
+      return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured on server" }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    console.log("✅ API key found, making request to Groq vision API");
+    console.log("✅ Gemini API key found, making request to Google Gemini Vision");
 
-    // Groq vision uses OpenAI-compatible format with image_url containing a base64 data URL
-    const dataUrl = `data:${mimeType};base64,${imageBase64}`;
-
-    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "qwen/qwen3.6-27b",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image_url",
-                image_url: {
-                  url: dataUrl,
+    // Call Gemini with vision capabilities
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  inline_data: {
+                    mime_type: mimeType,
+                    data: imageBase64,
+                  },
                 },
-              },
-              {
-                type: "text",
-                text: SYSTEM_PROMPT,
-              },
-            ],
+                {
+                  text: SYSTEM_PROMPT,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 1500,
           },
-        ],
-        temperature: 0.1,
-        max_tokens: 1500,
-      }),
-    });
+          safetySettings: [
+            {
+              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+              threshold: "BLOCK_NONE",
+            },
+          ],
+        }),
+      }
+    );
 
-    if (!groqResponse.ok) {
-      const errorText = await groqResponse.text();
-      console.error(`❌ Groq API error ${groqResponse.status}:`, errorText.substring(0, 500));
+    if (!geminiResponse.ok) {
+      const errorText = await geminiResponse.text();
+      console.error(`❌ Gemini API error ${geminiResponse.status}:`, errorText.substring(0, 500));
       return new Response(
-        JSON.stringify({ error: `Groq API error: ${groqResponse.status}`, detail: errorText }),
-        { status: groqResponse.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        JSON.stringify({ error: `Gemini API error: ${geminiResponse.status}`, detail: errorText }),
+        { status: geminiResponse.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    const data = await groqResponse.json();
-    const text = data.choices?.[0]?.message?.content || "";
+    const data = await geminiResponse.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-    console.log("📥 Raw Groq response (first 300 chars):", text.substring(0, 300));
+    console.log("📥 Raw Gemini response (first 300 chars):", text.substring(0, 300));
 
-    // Strip thinking tags (qwen outputs <think>...</think> before the JSON)
-    // and any accidental markdown fences, then parse JSON
+    // Extract JSON from response (Gemini might include explanation before JSON)
     let clean = text
-      .replace(/<think>[\s\S]*?<\/think>/gi, "")
-      .replace(/```json|```/g, "")
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
       .trim();
 
     let jsonMatch = clean.match(/\{[\s\S]*\}/);
 
-    // Resilient fallback in case think block was structured differently
+    // Fallback: look specifically for the classification JSON
     if (!jsonMatch) {
       jsonMatch = text.match(/\{[\s\S]*"category"[\s\S]*\}/);
     }

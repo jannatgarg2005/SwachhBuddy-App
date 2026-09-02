@@ -2,6 +2,9 @@
 
 export const config = { runtime: "edge" };
 
+// Get API key at module load time for Vercel Edge
+const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
+
 const SYSTEM_PROMPT = `You are EcoBuddy, a friendly and knowledgeable AI assistant embedded in Swachh Buddy — India's waste management app for the Swachh Bharat Mission.
 
 Your personality:
@@ -86,16 +89,8 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
-    // Try to get API key from Vercel environment or process.env
-    let apiKey = "";
-    if (typeof process !== "undefined" && process.env) {
-      apiKey = process.env.GROQ_API_KEY || "";
-    } else {
-      apiKey = (globalThis as unknown as { process?: { env?: Record<string, string> } })
-        .process?.env?.GROQ_API_KEY || "";
-    }
-
-    if (!apiKey) {
+    // Use the API key loaded at module initialization
+    if (!GROQ_API_KEY) {
       console.error("❌ GROQ_API_KEY not found in environment variables");
       return new Response(JSON.stringify({ error: "GROQ_API_KEY not configured on server" }), {
         status: 500,
@@ -119,7 +114,7 @@ export default async function handler(req: Request): Promise<Response> {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",

@@ -89,7 +89,7 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
-    console.log("✅ Groq API key found, making request to Groq Vision (llama-3.2-90b-vision-preview)");
+    console.log("✅ Groq API key found, making request to Groq Vision (qwen/qwen3.6-27b)");
 
     // Groq Vision uses OpenAI-compatible format with image_url
     const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -99,7 +99,7 @@ export default async function handler(req: Request): Promise<Response> {
         "Authorization": `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "llama-3.2-90b-vision-preview",
+        model: "qwen/qwen3.6-27b",
         messages: [
           {
             role: "user",

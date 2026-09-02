@@ -98,7 +98,7 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
-    console.log("✅ Groq API key found, making request to Groq Mixtral");
+    console.log("✅ Groq API key found, making request to Groq (openai/gpt-oss-20b)");
 
     // Groq uses the OpenAI-compatible format
     const groqMessages = [
@@ -116,7 +116,7 @@ export default async function handler(req: Request): Promise<Response> {
         "Authorization": `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "mixtral-8x7b-32768",
+        model: "openai/gpt-oss-20b",
         messages: groqMessages,
         temperature: 0.7,
         max_tokens: 400,

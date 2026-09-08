@@ -5,7 +5,7 @@
 [![Vite](https://img.shields.io/badge/Vite-7.3.1-646CFF?logo=vite)](https://vitejs.dev/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**SwachhBuddy** is India's comprehensive digital waste management platform designed to promote sustainable practices through community engagement, gamification, and real-time tracking. Built SIH 2025 and serving as a Minor Project for real-life waste management solutions.
+**SwachhBuddy** is India's comprehensive digital waste management platform designed to promote sustainable practices through community engagement, gamification, and real-time tracking. Built for SIH 2025 and serving as a Minor Project for real-life waste management solutions.
 
 ---
 

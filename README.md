@@ -1,4 +1,4 @@
-# 🌱 SwachhBuddy - Smart Waste Management Platform
+# 🌱 SwachhBuddy - Smart Waste Management Platform For Segregation 
 
 [![React](https://img.shields.io/badge/React-18.3.1-61DAFB?logo=react)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-3178C6?logo=typescript)](https://www.typescriptlang.org/)

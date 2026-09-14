@@ -18,7 +18,6 @@ SwachhBuddy transforms waste management by making it interactive, transparent, a
 #### 🎮 **Play & Learn**
 - **6 Interactive Games**: Waste Sorting Game, Eco Escape Room, Eco Word Search, Eco Sorter Training, Eco Runner, and Eco Mario
 - Gamified learning experiences that make waste education fun and engaging
-- Progressive difficulty levels to build expertise
 
 #### 🏆 **Earn Rewards**
 - Points-based reward system for sustainable actions

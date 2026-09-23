@@ -222,7 +222,7 @@ SwachhBuddy/
 3. **Eco Word Search**: Find waste-related terms
 4. **Eco Sorter Training**: Advanced segregation training
 5. **Eco Runner**: Endless runner collecting recyclables
-6. **Eco Mario**: Platform game with environmental challenges
+6. **Eco Mario**: Platform game with environmental challenges and fun
 
 ---
 

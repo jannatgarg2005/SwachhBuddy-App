@@ -48,7 +48,12 @@ const Login = () => {
             if (error) { setError(error); return; }
             if (user) {
                 toast({ title: "Welcome back!", description: "Signed in with Google." });
-                navigate('/dashboard/corporate');
+                const userData = await getUserData(user.uid);
+                if (userData?.role === 'municipal-employee') {
+                    navigate('/dashboard/enduser');
+                } else {
+                    navigate('/dashboard/corporate');
+                }
             }
         } catch (err) {
             setError("Failed to sign in with Google. Please try again.");

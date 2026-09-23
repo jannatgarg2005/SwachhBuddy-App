@@ -216,7 +216,7 @@ const SchedulePickup = ({ isOpen, onClose }: SchedulePickupProps) => {
 
   return (
     <AlertDialog open={isOpen} onOpenChange={handleClose}>
-      <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-h-[85vh] p-4 sm:p-6">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center">
             <Calendar className="mr-2 h-5 w-5" />

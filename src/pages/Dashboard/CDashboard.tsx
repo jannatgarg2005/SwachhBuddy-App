@@ -1,4 +1,4 @@
-// src/pages/Dashboard/CDashboard.tsx  ← UPDATED: tab state restore + rag picker stories fix
+// src/pages/Dashboard/CDashboard.tsx  ← UPDATED: Map tab added, mobile responsive, rewards modal fixed
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -21,13 +21,14 @@ import EWasteDay from "@/components/EWasteDay";
 import WasteChatbot from "@/components/WasteChatbot";
 import Activities from "../Activities";
 import { usePoints } from "@/contexts/PointsContext";
-import { FiHome, FiActivity, FiBook, FiAward } from "react-icons/fi";
+import { FiHome, FiActivity, FiBook, FiAward, FiMap } from "react-icons/fi";
 import { Progress } from "@/components/ui/progress";
 import SchedulePickup from "@/components/SchedulePickup";
 import AIWasteClassifier from "@/components/AIWasteClassifier";
 import { LiveDashboardStats } from "@/components/LiveDashboardStats";
 import DashboardHeader from "@/components/DashboardHeader";
 import CarbonTracker from "@/components/CarbonTracker";
+import { EmployeeMapDashboard } from "@/components/EmployeeMapDashboard";
 // ── NEW ──────────────────────────────────────────────────────────────────────
 import RagPickerIdentityWidget from "@/components/ragpicker/RagPickerIdentityWidget";
 // ─────────────────────────────────────────────────────────────────────────────
@@ -83,16 +84,18 @@ const CDashboard = () => {
       {/* ── Tabs ── */}
       <div className="container mx-auto p-3 md:p-5">
         <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 gap-1 md:gap-2 rounded-2xl bg-muted/60 p-1.5 md:p-2 shadow-sm">
+          {/* 6 tabs: responsive 3-col on mobile, 6-col on desktop */}
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 gap-1 rounded-2xl bg-muted/60 p-1.5 shadow-sm mb-4">
             {[
               { value: "overview",    icon: <FiHome className="w-4 h-4 flex-shrink-0" />,    label: "Overview" },
+              { value: "map",         icon: <FiMap className="w-4 h-4 flex-shrink-0 text-blue-600" />, label: "Live Map" },
               { value: "carbon",      icon: <Wind className="w-4 h-4 flex-shrink-0 text-green-600" />, label: "Carbon" },
               { value: "activities",  icon: <FiActivity className="w-4 h-4 flex-shrink-0" />, label: "Activities" },
               { value: "learning",    icon: <FiBook className="w-4 h-4 flex-shrink-0" />,     label: "Learning" },
-              { value: "leaderboard", icon: <FiAward className="w-4 h-4 flex-shrink-0" />,   label: "Leaderboard" },
+              { value: "leaderboard", icon: <FiAward className="w-4 h-4 flex-shrink-0" />,   label: "Rankings" },
             ].map(tab => (
               <TabsTrigger key={tab.value} value={tab.value}
-                className="flex items-center justify-center gap-1 md:gap-2 rounded-xl py-2 px-1 md:px-3 text-xs md:text-sm font-medium transition-all
+                className="flex items-center justify-center gap-1 rounded-xl py-2 px-1 md:px-3 text-xs md:text-sm font-medium transition-all
                   data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent
                   data-[state=active]:text-white data-[state=active]:shadow-md">
                 {tab.icon}<span className="hidden sm:inline">{tab.label}</span>
@@ -104,16 +107,6 @@ const CDashboard = () => {
           <TabsContent value="overview" className="space-y-4 md:space-y-6">
 
             <LiveDashboardStats />
-
-            {/* ── NEW: Rag Picker Identity Widget ── */}
-            <div>
-              <h2 className="text-xl md:text-2xl font-bold mb-3 flex items-center gap-2">
-                <IdCard className="h-5 w-5 text-green-600" />
-                Support Waste Pickers
-                <Badge className="bg-green-100 text-green-700 border-green-300 text-xs ml-1">New</Badge>
-              </h2>
-              <RagPickerIdentityWidget />
-            </div>
 
             {/* ── Quick Actions ── */}
             <h2 className="text-xl md:text-2xl font-bold mb-3">Quick Actions</h2>
@@ -135,6 +128,16 @@ const CDashboard = () => {
               ))}
             </div>
 
+            {/* ── Rag Picker Identity Widget ── */}
+            <div>
+              <h2 className="text-xl md:text-2xl font-bold mb-3 flex items-center gap-2">
+                <IdCard className="h-5 w-5 text-green-600" />
+                Support Waste Pickers
+                <Badge className="bg-green-100 text-green-700 border-green-300 text-xs ml-1">New</Badge>
+              </h2>
+              <RagPickerIdentityWidget />
+            </div>
+
             {/* ── Weekly Progress ── */}
             <Card>
               <CardHeader className="pb-2">
@@ -147,6 +150,11 @@ const CDashboard = () => {
                 </p>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* ── MAP (new tab — feature parity with Employee Dashboard) ── */}
+          <TabsContent value="map">
+            <EmployeeMapDashboard />
           </TabsContent>
 
           {/* ── CARBON ── */}
@@ -234,13 +242,13 @@ const CDashboard = () => {
       <WasteChatbot />
 
       {showRewards && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 md:p-6 overflow-auto">
-          <div className="bg-white w-full max-w-6xl rounded-lg shadow-xl">
-            <div className="p-4 border-b flex justify-between items-center">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-auto">
+          <div className="bg-white w-full max-w-6xl rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[92vh] flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
               <h3 className="text-lg font-semibold">Rewards</h3>
               <Button variant="ghost" onClick={() => setShowRewards(false)}>Close</Button>
             </div>
-            <div style={{ minHeight: 600 }}>
+            <div className="flex-1 overflow-auto">
               <RewardsSystem onBack={() => setShowRewards(false)} onRedeem={handlePointsRedeemedWrapper} />
             </div>
           </div>

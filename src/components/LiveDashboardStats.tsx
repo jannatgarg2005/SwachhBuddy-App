@@ -31,7 +31,7 @@ export const LiveDashboardStats = () => {
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [pulse, setPulse] = useState(false);
 
-  // Simulate live updates every 5 seconds
+  // Simulate live updates every 15 seconds (reduced from 5s for less jitter)
   useEffect(() => {
     const interval = setInterval(() => {
       setStats(prev => prev.map(stat => ({
@@ -47,7 +47,7 @@ export const LiveDashboardStats = () => {
       setLastUpdated(new Date());
       setPulse(true);
       setTimeout(() => setPulse(false), 500);
-    }, 5000);
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -129,7 +129,7 @@ export const LiveDashboardStats = () => {
             })}
           </div>
           <div className="mt-4 pt-4 border-t text-xs text-muted-foreground text-center">
-            📡 Data updates every 5 seconds · Showing live zone performance
+            📡 Data updates every 15 seconds · Showing live zone performance
           </div>
         </CardContent>
       </Card>

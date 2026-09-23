@@ -4,52 +4,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Recycle, AlertCircle, Users, Building2, CheckCircle, Gift } from "lucide-react";
+import { Eye, EyeOff, Recycle, AlertCircle, Users, Building2, Gift } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { signUpWithEmail, signInWithGoogle } from "@/lib/auth";
+import { signUpWithEmail, signInWithGoogle, getUserData } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { validateReferralCode, processReferralSignup } from "@/services/referral";
 
 const Signup = () => {
     const [searchParams] = useSearchParams();
     const [formData, setFormData] = useState({
-        firstName: "",
-        lastName: "",
+        fullName: "",
         email: "",
         password: "",
-        confirmPassword: "",
-        role: "",
+        role: "" as "" | "citizen" | "municipal-employee",
         employeeId: "",
         department: "",
         referralCode: searchParams.get('ref') || "",
         agreeToTerms: false,
     });
     const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const [referralValidation, setReferralValidation] = useState<{ isValid: boolean; message: string }>({ isValid: false, message: "" });
     const navigate = useNavigate();
     const { toast } = useToast();
-
-    const roles = [
-        {
-            id: "citizen",
-            title: "Citizen",
-            description: "Join as a community member to contribute to waste management",
-            icon: <Users className="h-6 w-6" />,
-            features: ["Report waste issues", "Learn waste segregation", "Earn rewards", "Track progress"]
-        },
-        {
-            id: "municipal-employee",
-            title: "Municipal Employee",
-            description: "Official waste management personnel and administrators",
-            icon: <Building2 className="h-6 w-6" />,
-            features: ["Manage waste collection", "Monitor operations", "Generate reports", "Admin dashboard"]
-        }
-    ];
 
     useEffect(() => {
         const validateReferral = async () => {
@@ -77,7 +56,7 @@ const Signup = () => {
         e.preventDefault();
         setError("");
 
-        if (formData.password !== formData.confirmPassword) { setError("Passwords do not match"); return; }
+        if (!formData.fullName.trim()) { setError("Please enter your name"); return; }
         if (formData.password.length < 8) { setError("Password must be at least 8 characters long"); return; }
         if (!formData.role) { setError("Please select a role"); return; }
         if (!formData.agreeToTerms) { setError("Please agree to the terms and conditions"); return; }
@@ -87,10 +66,14 @@ const Signup = () => {
 
         setIsLoading(true);
         try {
+            const nameParts = formData.fullName.trim().split(/\s+/);
+            const firstName = nameParts[0];
+            const lastName = nameParts.slice(1).join(" ") || "";
+
             const userData = {
-                displayName: `${formData.firstName} ${formData.lastName}`,
-                firstName: formData.firstName,
-                lastName: formData.lastName,
+                displayName: formData.fullName.trim(),
+                firstName,
+                lastName,
                 role: formData.role as 'citizen' | 'municipal-employee',
                 ...(formData.role === "municipal-employee" && {
                     employeeId: formData.employeeId,
@@ -126,7 +109,12 @@ const Signup = () => {
             if (error) { setError(error); return; }
             if (user) {
                 toast({ title: "Welcome to Swachh Buddy! 🎉", description: "Account created with Google." });
-                navigate('/dashboard/corporate');
+                const userData = await getUserData(user.uid);
+                if (userData?.role === 'municipal-employee') {
+                    navigate('/dashboard/enduser');
+                } else {
+                    navigate('/dashboard/corporate');
+                }
             }
         } catch {
             setError("Failed to sign up with Google.");
@@ -141,17 +129,15 @@ const Signup = () => {
     };
 
     return (
-        // FIXED: dark mode background + explicit text colors throughout
         <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-950">
             <div className="container mx-auto px-4 py-12 md:py-16">
-                <div className="max-w-2xl mx-auto">
+                <div className="max-w-md mx-auto">
 
-                    {/* Header — FIXED: always visible in both themes */}
+                    {/* Header */}
                     <div className="text-center mb-8">
                         <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center mb-4 shadow-lg">
                             <Recycle className="h-8 w-8 text-white" />
                         </div>
-                        {/* FIXED: explicit colors instead of text-foreground */}
                         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                             Join Swachh Buddy
                         </h1>
@@ -160,10 +146,10 @@ const Signup = () => {
                         </p>
                     </div>
 
-                    {/* Signup Card — FIXED: explicit background */}
+                    {/* Signup Card */}
                     <Card className="shadow-xl border-0 bg-white dark:bg-gray-900">
-                        <CardHeader className="space-y-1">
-                            <CardTitle className="text-2xl text-center text-gray-900 dark:text-white">
+                        <CardHeader className="space-y-1 pb-4">
+                            <CardTitle className="text-xl text-center text-gray-900 dark:text-white">
                                 Create Account
                             </CardTitle>
                             <CardDescription className="text-center text-gray-500 dark:text-gray-400">
@@ -172,15 +158,15 @@ const Signup = () => {
                         </CardHeader>
                         <CardContent>
                             {searchParams.get('ref') && (
-                                <Alert className="mb-6 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+                                <Alert className="mb-4 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
                                     <Gift className="h-4 w-4 text-green-600" />
                                     <AlertDescription className="text-green-800 dark:text-green-300">
-                                        🎉 You've been referred! Complete signup and both of you earn 10 coins.
+                                        🎉 You've been referred! Both of you earn 10 coins on signup.
                                     </AlertDescription>
                                 </Alert>
                             )}
 
-                            <form onSubmit={handleSubmit} className="space-y-6">
+                            <form onSubmit={handleSubmit} className="space-y-4">
                                 {error && (
                                     <Alert variant="destructive">
                                         <AlertCircle className="h-4 w-4" />
@@ -188,66 +174,52 @@ const Signup = () => {
                                     </Alert>
                                 )}
 
-                                {/* Role Selection */}
-                                <div className="space-y-4">
-                                    <Label className="text-base font-medium text-gray-900 dark:text-white">
-                                        Select Your Role
-                                    </Label>
-                                    <RadioGroup value={formData.role} onValueChange={(v) => setFormData(prev => ({ ...prev, role: v }))}>
-                                        <div className="grid gap-4">
-                                            {roles.map((role) => (
-                                                <div key={role.id} className="relative">
-                                                    <RadioGroupItem value={role.id} id={role.id} className="peer sr-only" />
-                                                    <Label
-                                                        htmlFor={role.id}
-                                                        className="flex flex-col space-y-3 rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 cursor-pointer transition-all"
-                                                    >
-                                                        <div className="flex items-center space-x-3">
-                                                            <div className="text-primary">{role.icon}</div>
-                                                            <div className="flex-1">
-                                                                {/* FIXED: explicit font colors */}
-                                                                <div className="font-medium text-foreground">{role.title}</div>
-                                                                <div className="text-sm text-muted-foreground">{role.description}</div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                                                            {role.features.map((feature, i) => (
-                                                                <div key={i} className="flex items-center space-x-1">
-                                                                    <CheckCircle className="h-3 w-3 text-green-500 flex-shrink-0" />
-                                                                    <span>{feature}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </Label>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </RadioGroup>
-                                </div>
-
-                                {/* Name Fields */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="firstName" className="text-gray-700 dark:text-gray-300">First Name</Label>
-                                        <Input id="firstName" name="firstName" placeholder="John"
-                                            value={formData.firstName} onChange={handleInputChange} required className="h-11" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="lastName" className="text-gray-700 dark:text-gray-300">Last Name</Label>
-                                        <Input id="lastName" name="lastName" placeholder="Doe"
-                                            value={formData.lastName} onChange={handleInputChange} required className="h-11" />
-                                    </div>
-                                </div>
-
+                                {/* Role Selection — simplified pill buttons */}
                                 <div className="space-y-2">
-                                    <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">Email Address</Label>
-                                    <Input id="email" name="email" type="email" placeholder="your.email@example.com"
+                                    <Label className="text-sm font-medium text-gray-900 dark:text-white">
+                                        I am a
+                                    </Label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {[
+                                            { id: "citizen" as const, title: "Citizen", icon: <Users className="h-5 w-5" /> },
+                                            { id: "municipal-employee" as const, title: "Employee", icon: <Building2 className="h-5 w-5" /> },
+                                        ].map(role => (
+                                            <button
+                                                key={role.id}
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({ ...prev, role: role.id }))}
+                                                className={`
+                                                    flex items-center justify-center gap-2 rounded-xl border-2 p-3 font-medium text-sm transition-all
+                                                    ${formData.role === role.id
+                                                        ? "border-primary bg-primary/10 text-primary shadow-sm"
+                                                        : "border-muted hover:border-muted-foreground/30 text-muted-foreground"
+                                                    }
+                                                `}
+                                            >
+                                                {role.icon}
+                                                {role.title}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Full Name — single field */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="fullName" className="text-gray-700 dark:text-gray-300">Full Name</Label>
+                                    <Input id="fullName" name="fullName" placeholder="Your full name"
+                                        value={formData.fullName} onChange={handleInputChange} required className="h-11" />
+                                </div>
+
+                                {/* Email */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">Email</Label>
+                                    <Input id="email" name="email" type="email" placeholder="you@example.com"
                                         value={formData.email} onChange={handleInputChange} required className="h-11" />
                                 </div>
 
-                                {/* Employee Fields */}
+                                {/* Employee Fields — only when municipal-employee */}
                                 {formData.role === "municipal-employee" && (
-                                    <>
+                                    <div className="grid grid-cols-2 gap-3">
                                         <div className="space-y-2">
                                             <Label htmlFor="employeeId" className="text-gray-700 dark:text-gray-300">Employee ID</Label>
                                             <Input id="employeeId" name="employeeId" placeholder="EMP001"
@@ -255,19 +227,19 @@ const Signup = () => {
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="department" className="text-gray-700 dark:text-gray-300">Department</Label>
-                                            <Input id="department" name="department" placeholder="Waste Management"
+                                            <Input id="department" name="department" placeholder="Optional"
                                                 value={formData.department} onChange={handleInputChange} className="h-11" />
                                         </div>
-                                    </>
+                                    </div>
                                 )}
 
-                                {/* Password */}
+                                {/* Password — single field with show/hide */}
                                 <div className="space-y-2">
                                     <Label htmlFor="password" className="text-gray-700 dark:text-gray-300">Password</Label>
                                     <div className="relative">
                                         <Input id="password" name="password"
                                             type={showPassword ? "text" : "password"}
-                                            placeholder="Create a strong password"
+                                            placeholder="Min 8 characters"
                                             value={formData.password} onChange={handleInputChange} required className="h-11 pr-10" />
                                         <Button type="button" variant="ghost" size="sm"
                                             className="absolute right-0 top-0 h-11 px-3 hover:bg-transparent"
@@ -275,31 +247,15 @@ const Signup = () => {
                                             {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                                         </Button>
                                     </div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">Minimum 8 characters</p>
                                 </div>
 
+                                {/* Referral Code — collapsed into small input */}
                                 <div className="space-y-2">
-                                    <Label htmlFor="confirmPassword" className="text-gray-700 dark:text-gray-300">Confirm Password</Label>
-                                    <div className="relative">
-                                        <Input id="confirmPassword" name="confirmPassword"
-                                            type={showConfirmPassword ? "text" : "password"}
-                                            placeholder="Confirm your password"
-                                            value={formData.confirmPassword} onChange={handleInputChange} required className="h-11 pr-10" />
-                                        <Button type="button" variant="ghost" size="sm"
-                                            className="absolute right-0 top-0 h-11 px-3 hover:bg-transparent"
-                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
-                                            {showConfirmPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                {/* Referral Code */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="referralCode" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                                        <Gift className="h-4 w-4 text-primary" /> Referral Code (Optional)
+                                    <Label htmlFor="referralCode" className="flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm">
+                                        <Gift className="h-3.5 w-3.5 text-primary" /> Referral Code (Optional)
                                     </Label>
-                                    <Input id="referralCode" name="referralCode" placeholder="Enter referral code"
-                                        value={formData.referralCode} onChange={handleInputChange} className="h-11" />
+                                    <Input id="referralCode" name="referralCode" placeholder="Enter code"
+                                        value={formData.referralCode} onChange={handleInputChange} className="h-10" />
                                     {referralValidation.message && (
                                         <p className={`text-xs ${referralValidation.isValid ? 'text-green-600' : 'text-red-500'}`}>
                                             {referralValidation.message}
@@ -329,7 +285,7 @@ const Signup = () => {
                                         <span className="w-full border-t border-gray-200 dark:border-gray-700" />
                                     </div>
                                     <div className="relative flex justify-center text-xs uppercase">
-                                        <span className="bg-white dark:bg-gray-900 px-2 text-gray-400">Or continue with</span>
+                                        <span className="bg-white dark:bg-gray-900 px-2 text-gray-400">Or</span>
                                     </div>
                                 </div>
 
@@ -346,10 +302,10 @@ const Signup = () => {
                                 </Button>
                             </form>
 
-                            <div className="mt-6 text-center text-sm">
+                            <div className="mt-4 text-center text-sm">
                                 <span className="text-gray-500 dark:text-gray-400">Already have an account? </span>
                                 <Link to="/login" className="text-primary hover:text-primary/80 font-medium transition-colors">
-                                    Sign in here
+                                    Sign in
                                 </Link>
                             </div>
                         </CardContent>

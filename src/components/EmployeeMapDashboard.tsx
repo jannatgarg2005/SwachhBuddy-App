@@ -193,7 +193,7 @@ export const EmployeeMapDashboard = () => {
             {layers.trucks && LIVE_TRUCKS.map(t => (
               <Marker key={t.id} position={t.pos} icon={icons.truck}>
                 <Popup>
-                  <div className="min-w-[180px] space-y-1">
+                  <div className="space-y-1">
                     <p className="font-bold text-green-700">{t.name}</p>
                     <p className="text-xs">🛣 Route: {t.route}</p>
                     <p className="text-xs">👷 Driver: {t.driver}</p>
@@ -209,7 +209,7 @@ export const EmployeeMapDashboard = () => {
               <React.Fragment key={d.id}>
                 <Marker position={d.pos} icon={d.status === 'critical' ? mkIcon('🏭', 36, '#dc2626') : icons.dumpSite}>
                   <Popup>
-                    <div className="min-w-[200px] space-y-1.5">
+                    <div className="space-y-1.5">
                       <p className="font-bold">{d.name}</p>
                       <p className="text-xs text-gray-500">{d.type} • {d.zone}</p>
                       <div>
@@ -240,7 +240,7 @@ export const EmployeeMapDashboard = () => {
               <Marker key={s.id} position={s.pos}
                 icon={s.type === 'Burning Waste' ? icons.fireHazard : s.type === 'Bin Overflow' ? icons.overflow : icons.illegalDump}>
                 <Popup>
-                  <div className="min-w-[200px] space-y-1.5">
+                  <div className="space-y-1.5">
                     <p className="font-bold text-red-700">{s.name}</p>
                     <p className="text-xs text-gray-500">Type: {s.type} • Reported: {s.reported}</p>
                     <Badge style={{ background: severityColor(s.severity), fontSize: 10 }}>
@@ -260,7 +260,7 @@ export const EmployeeMapDashboard = () => {
             {layers.hazardous && HAZARDOUS.map(h => (
               <Marker key={h.id} position={h.pos} icon={icons.hazardous}>
                 <Popup>
-                  <div className="min-w-[180px] space-y-1">
+                  <div className="space-y-1">
                     <p className="font-bold text-purple-700">{h.name}</p>
                     <p className="text-xs">Type: {h.type}</p>
                     <Badge className={h.level === 'high' ? 'bg-red-500' : h.level === 'moderate' ? 'bg-yellow-500' : 'bg-green-500'} style={{ fontSize: 10 }}>

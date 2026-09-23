@@ -87,7 +87,7 @@ const DashboardHeader = ({
         </div>
 
         {/* ── Stats grid ── */}
-        <div className="grid gap-2 md:gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(stats.length, 5)}, minmax(0, 1fr))` }}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3">
           {stats.map((stat, i) => (
             <div
               key={i}

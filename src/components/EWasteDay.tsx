@@ -97,7 +97,7 @@ const EWasteDay = ({ isOpen, onClose }: EWasteDayProps) => {
 
   return (
     <AlertDialog open={isOpen} onOpenChange={handleClose}>
-      <AlertDialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <AlertDialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto sm:max-h-[85vh] p-4 sm:p-6">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center text-2xl">
             <Recycle className="mr-3 h-6 w-6 text-primary" />

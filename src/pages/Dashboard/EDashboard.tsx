@@ -1,4 +1,4 @@
-// src/pages/Dashboard/EDashboard.tsx  ← UPDATED: tab state restore + learning nav fix
+// src/pages/Dashboard/EDashboard.tsx  ← UPDATED: responsive tabs, rewards modal fixed
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -125,7 +125,8 @@ const EDashboard: React.FC = () => {
       {/* ── Tabs ── */}
       <div className="container mx-auto p-3 md:p-5">
         <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 gap-1 md:gap-2 rounded-2xl bg-muted/60 p-1.5 md:p-2 shadow-sm">
+          {/* Responsive: 3-col on mobile, 5-col on desktop */}
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 gap-1 rounded-2xl bg-muted/60 p-1.5 shadow-sm mb-4">
             {[
               { value: "overview",   icon: <FiHome className="w-4 h-4" />,     label: "Overview" },
               { value: "map",        icon: <FiMap className="w-4 h-4" />,      label: "Map" },
@@ -145,7 +146,7 @@ const EDashboard: React.FC = () => {
           {/* ── OVERVIEW ── */}
           <TabsContent value="overview" className="space-y-4 md:space-y-6">
 
-            {/* ── NEW: Rag Picker Identity Widget ── */}
+            {/* ── Rag Picker Identity Widget ── */}
             <div>
               <h2 className="text-lg md:text-xl font-bold mb-3 flex items-center gap-2">
                 <IdCard className="h-5 w-5 text-green-600" />
@@ -364,13 +365,13 @@ const EDashboard: React.FC = () => {
       <WasteChatbot />
 
       {showRewards && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 md:p-6 overflow-auto">
-          <div className="bg-white w-full max-w-6xl rounded-lg shadow-xl">
-            <div className="p-4 border-b flex justify-between items-center">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-auto">
+          <div className="bg-white w-full max-w-6xl rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[92vh] flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
               <h3 className="text-lg font-semibold">Rewards</h3>
               <Button variant="ghost" onClick={() => setShowRewards(false)}>Close</Button>
             </div>
-            <div style={{ minHeight: 600 }}>
+            <div className="flex-1 overflow-auto">
               <RewardsSystem onBack={() => setShowRewards(false)} onRedeem={handlePointsRedeemedWrapper} />
             </div>
           </div>

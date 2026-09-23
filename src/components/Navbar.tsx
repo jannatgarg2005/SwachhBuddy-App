@@ -130,12 +130,7 @@ const Navbar = ({ onNavigate }: NavbarProps) => {
                 whileTap={{ scale: 0.95 }}
                 className="w-9 h-9 rounded-full bg-gradient-to-r from-green-600 to-emerald-400 flex items-center justify-center shadow-md"
               >
-                <motion.div
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
-                >
                   <Leaf className="w-5 h-5 text-white" />
-                </motion.div>
               </motion.div>
               <motion.span
                 className="font-extrabold text-xl bg-gradient-to-r from-green-700 to-emerald-400 bg-clip-text text-transparent"

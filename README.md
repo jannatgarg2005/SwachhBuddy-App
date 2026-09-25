@@ -29,7 +29,7 @@ SwachhBuddy transforms waste management by making it interactive, transparent, a
 - Real-time waste reporting system
 - AI-powered waste classification using computer vision
 - Live map dashboard showing waste collection points
-- Schedule pickup services
+- Schedule pickup services online
 - Track waste management progress
 
 #### 📚 **Comprehensive Learning Modules**

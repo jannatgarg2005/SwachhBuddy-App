@@ -243,6 +243,7 @@ SwachhBuddy tracks and displays:
 - Trees saved equivalent
 - Active user count
 - Communities engaged
+- Ensures awareness
 
 ---
 

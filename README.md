@@ -25,7 +25,7 @@ SwachhBuddy transforms waste management by making it interactive, transparent, a
 - Referral program with bonus rewards
 - Leaderboard and achievement tracking
 
-#### 🚨 **Resolve Issues**
+#### 🚨 **Resolve Issues in real life**
 - Real-time waste reporting system
 - AI-powered waste classification using computer vision
 - Live map dashboard showing waste collection points

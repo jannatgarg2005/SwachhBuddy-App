@@ -7,6 +7,11 @@
 
 **SwachhBuddy** is India's comprehensive digital waste management platform designed to promote sustainable practices through community engagement, gamification, incentive-based and real-time tracking. Built for system and serving as a Minor Project for real-life waste management solutions.
 
+**India's smart waste management platform — segregate, track, verify, and earn rewards for a cleaner nation. Every action matters.**
+
+Get Started
+Explore Learning
+
 ## 🎯 Project Overview
 
 SwachhBuddy transforms waste management by making it interactive, transparent, and rewarding. The platform caters to multiple user types including citizens, students, community leaders, waste collectors, rag pickers and corporate employees.

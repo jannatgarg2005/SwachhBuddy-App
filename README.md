@@ -11,7 +11,7 @@
 
 ## 🎯 Project Overview
 
-SwachhBuddy transforms waste management by making it interactive, transparent, and rewarding. The platform caters to multiple user types including citizens, students, community leaders, waste collectors, rag pickers and corporate employees.
+SwachhBuddy transforms waste management by making it interactive, transparent, and rewarding. 
 
 ### 🌟 Key Features
 
